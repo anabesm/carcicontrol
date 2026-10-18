@@ -1,15 +1,235 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// enums
+enum PerfilUsuario {
+  ADMINISTRADOR
+  FUNCIONARIO
+}
+
+enum StatusGeral {
+  ATIVO
+  INATIVO
+}
+
+enum StatusViveiro {
+  DISPONIVEL
+  OCUPADO
+  MANUTENCAO
+  INATIVO
+}
+
+enum StatusCiclo {
+  ATIVO
+  FINALIZADO
+  CANCELADO
+}
+
+enum GravidadeAlerta {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum StatusAlerta {
+  PENDENTE
+  RESOLVIDO
+  IGNORADO
+}
+
+enum CategoriaDespesa {
+  RACAO
+  ENERGIA
+  INSUMOS_QUIMICOS
+  BIOLOGICOS
+  MANUTENCAO
+  MAO_DE_OBRA
+  OUTROS
+}
+
+// models
+
+model Usuario {
+  id        Int           @id @default(autoincrement())
+  nome      String
+  email     String        @unique
+  senha     String
+  telefone  String?
+  perfil    PerfilUsuario
+  status    StatusGeral   @default(ATIVO)
+  criadoEm  DateTime      @default(now())
+  criadoPor Int?
+
+  medicoesRegistadas Medicao[] @relation("RegistadoPor")
+  alertasResolvidos  Alerta[]  @relation("ResolvidoPor")
+}
+
+model Viveiro {
+  id                Int           @id @default(autoincrement())
+  identificador     String        @unique
+  area              Float
+  profundidadeMedia Float
+  localizacao       String?
+  status            StatusViveiro @default(DISPONIVEL)
+  criadoEm          DateTime      @default(now())
+  atualizadoEm      DateTime      @updatedAt
+
+  // relacionamentos
+  ciclos           CicloCultivo[]
+  faixasParametros FaixaParametro[]
+  despesas         CompraDespesa[]
+  vendas           Venda[]
+  eventos          EventoOperacional[]
+}
+
+model CicloCultivo {
+  id               Int         @id @default(autoincrement())
+  viveiroId        Int
+  viveiro          Viveiro     @relation(fields: [viveiroId], references: [id])
+  status           StatusCiclo @default(ATIVO)
+  dataInicio       DateTime
+  qtdLarvasInicial Int
+  fornecedorLarvas String?
+  previsaoDespesca DateTime?
+  dataEncerramento DateTime?
+  pesoFinal        Float?
+  criadoPor        Int
+  criadoEm         DateTime    @default(now())
+  atualizadoEm     DateTime    @updatedAt
+
+  // relacionamentos
+  medicoes Medicao[]
+  despesas CompraDespesa[]
+  vendas   Venda[]
+  eventos  EventoOperacional[]
+}
+
+model Parametro {
+  id            Int     @id @default(autoincrement())
+  codigo        String  @unique
+  nome          String
+  unidadePadrao String
+  minPossivel   Float?
+  maxPossivel   Float?
+  ativo         Boolean @default(true)
+
+  faixas   FaixaParametro[]
+  medicoes Medicao[]
+}
+
+model FaixaParametro {
+  id                 Int       @id @default(autoincrement())
+  parametroId        Int
+  parametro          Parametro @relation(fields: [parametroId], references: [id])
+  viveiroId          Int?
+  viveiro            Viveiro?  @relation(fields: [viveiroId], references: [id])
+  minIdeal           Float
+  maxIdeal           Float
+  minCritico         Float?
+  maxCritico         Float?
+  minAcaoRecomendada String?
+  maxAcaoRecomendada String?
+  ativo              Boolean   @default(true)
+  criadoPor          Int
+  criadoEm           DateTime  @default(now())
+}
+
+model Medicao {
+  id              Int          @id @default(autoincrement())
+  parametroId     Int
+  parametro       Parametro    @relation(fields: [parametroId], references: [id])
+  cicloId         Int
+  ciclo           CicloCultivo @relation(fields: [cicloId], references: [id])
+  valor           Float
+  registradoPorId Int
+  registradoPor   Usuario      @relation("RegistadoPor", fields: [registradoPorId], references: [id])
+  criadoEm        DateTime     @default(now())
+  editadoEm       DateTime     @updatedAt
+
+  alertas Alerta[]
+}
+
+model Alerta {
+  id             Int             @id @default(autoincrement())
+  medicaoId      Int
+  medicao        Medicao         @relation(fields: [medicaoId], references: [id])
+  dataHora       DateTime        @default(now())
+  valorMedido    Float
+  limiteViolado  String
+  gravidade      GravidadeAlerta
+  status         StatusAlerta    @default(PENDENTE)
+  observacao     String?
+  resolvidoPorId Int?
+  resolvidoPor   Usuario?        @relation("ResolvidoPor", fields: [resolvidoPorId], references: [id])
+  resolvidoEm    DateTime?
+}
+
+model CompraDespesa {
+  id              Int           @id @default(autoincrement())
+  viveiroId       Int?
+  viveiro         Viveiro?      @relation(fields: [viveiroId], references: [id])
+  cicloId         Int?
+  ciclo           CicloCultivo? @relation(fields: [cicloId], references: [id])
+  data            DateTime
+  fornecedorNome  String?
+  numeroDocumento String?
+  valorTotal      Float
+  formaPagamento  String?
+  statusPagamento String?
+  observacao      String?
+  criadoPor       Int
+  criadoEm        DateTime      @default(now())
+
+  itens ItemCompra[]
+}
+
+model ItemCompra {
+  id             Int              @id @default(autoincrement())
+  compraId       Int
+  compra         CompraDespesa    @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  categoria      CategoriaDespesa
+  descricao      String
+  quantidade     Float
+  unidade        String
+  valorUnit      Float
+  valorTotalItem Float
+  observacao     String?
+}
+
+model Venda {
+  id            Int          @id @default(autoincrement())
+  viveiroId     Int
+  viveiro       Viveiro      @relation(fields: [viveiroId], references: [id])
+  cicloId       Int
+  ciclo         CicloCultivo @relation(fields: [cicloId], references: [id])
+  data          DateTime
+  compradorNome String
+  pesoTotalKg   Float
+  precoPorKg    Float
+  valorTotal    Float
+  biometria     String?
+  observacao    String?
+  criadoPor     Int
+  criadoEm      DateTime     @default(now())
+}
+
+model EventoOperacional {
+  id         Int           @id @default(autoincrement())
+  viveiroId  Int
+  viveiro    Viveiro       @relation(fields: [viveiroId], references: [id])
+  cicloId    Int?
+  ciclo      CicloCultivo? @relation(fields: [cicloId], references: [id])
+  dataHora   DateTime      @default(now())
+  tipo       String
+  descricao  String
+  quantidade Float?
+  criadoPor  Int
+  criadoEm   DateTime      @default(now())
 }
