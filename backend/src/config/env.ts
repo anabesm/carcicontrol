@@ -26,4 +26,6 @@ export const env = {
   host: process.env.HOST ?? "127.0.0.1",
   port,
   databaseUrl,
+  sessionTtlMs: 8 * 60 * 60 * 1000,
+  secureCookies: process.env.NODE_ENV === "production",
 };

@@ -19,7 +19,7 @@ Copy-Item .env.example .env
 ```
 
 Defina uma senha local em `POSTGRES_PASSWORD` e atualize a mesma senha em
-`DATABASE_URL`. Caracteres especiais na URL devem ser codificados como URL.
+`DATABASE_URL` e `TEST_DATABASE_URL`. Caracteres especiais na URL devem ser codificados como URL.
 O arquivo `.env` não é versionado.
 
 ```powershell
@@ -62,6 +62,67 @@ npm start
 
 `HOST` e `PORT` controlam o endereço da API. Os padrões são `127.0.0.1:3000`.
 `npm run db:stop` para o container sem remover os dados.
+
+## Autenticação e funcionários
+
+As sessões são persistidas no PostgreSQL. O login envia o cookie
+`carcicontrol_session` com `HttpOnly`, `SameSite=Lax` e validade de oito horas.
+Em produção, o cookie também exige HTTPS (`Secure`). O logout remove a sessão
+do servidor e invalida o cookie anterior. O banco armazena apenas o hash do token
+da sessão. O perfil e a situação do usuário são consultados no servidor a cada
+requisição autenticada.
+
+| Método | Rota | Acesso | Corpo JSON |
+| --- | --- | --- | --- |
+| POST | `/auth/login` | Público | `email`, `senha` |
+| GET | `/auth/me` | Autenticado | — |
+| POST | `/auth/logout` | Autenticado | — |
+| GET | `/usuarios` | Administrador | — |
+| POST | `/usuarios` | Administrador | `nome`, `email`, `senha`, `telefone` opcional |
+
+As respostas de login, consulta e cadastro usam `{ "usuario": ... }`; a listagem
+usa `{ "usuarios": [...] }` e inclui somente funcionários. Nenhuma resposta
+inclui senha ou hash. O cadastro define o perfil `FUNCIONARIO`, situação `ATIVO`
+e administrador responsável no servidor. Campos extras como `perfil` são
+rejeitados. E-mails são normalizados, senhas de cadastro têm entre 8 e 128
+caracteres e são armazenadas com scrypt e salt exclusivo.
+
+Erros usam `{ "error": "mensagem" }`, com `400` para dados inválidos, `401` para
+credenciais/sessão inválidas, `403` para falta de permissão e `409` para e-mail já
+cadastrado. O logout bem-sucedido responde `204`. O cliente deve conservar o
+cookie recebido e fazer as requisições pela mesma origem da aplicação.
+
+### Administrador de demonstração
+
+Defina `DEMO_ADMIN_NAME`, `DEMO_ADMIN_EMAIL` e `DEMO_ADMIN_PASSWORD` no `.env` local.
+Depois de aplicar as migrations, execute explicitamente:
+
+```powershell
+npm run db:seed:demo
+```
+
+O comando cria somente a conta inicial de administrador. Se o administrador já
+existir, preserva seus dados, situação e senha. Se o e-mail pertencer a um
+funcionário, recusa a criação sem alterar seu perfil. Não há seed automático na
+inicialização da API, nem recuperação de senha ou edição de usuários nesta versão.
+
+### Testes de integração
+
+Os testes comuns (`npm test`) verificam o endpoint de saúde e o hash das senhas.
+Para os testes com PostgreSQL, crie uma vez o banco separado de testes:
+
+```powershell
+docker compose exec db createdb -U carcicontrol carcicontrol_test
+npm run test:integration
+```
+
+Se o banco já existir, reutilize-o. Configure `TEST_DATABASE_URL` para esse banco
+antes de executar. A suíte exige um nome terminado em `_test`, recusa o banco da
+aplicação, aplica as migrations e cria usuários com identificadores exclusivos.
+Ao terminar, remove somente os usuários que criou e suas sessões.
+
+Os testes cobrem credenciais incorretas, sessão ausente/expirada, permissões,
+cadastro concorrente, respostas sem senhas, inativação, logout e seed repetido.
 
 ## Migrations e dados existentes
 

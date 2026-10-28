@@ -6,7 +6,10 @@ async function start(): Promise<void> {
   await prisma.$connect();
   await checkDatabase();
 
-  const app = createApp(checkDatabase);
+  const app = createApp(checkDatabase, {
+    db: prisma,
+    session: { ttlMs: env.sessionTtlMs, secure: env.secureCookies },
+  });
   const server = app.listen(env.port, env.host, () => {
     console.info(`API disponível em http://${env.host}:${env.port}`);
   });

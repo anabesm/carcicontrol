@@ -9,14 +9,16 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
-    "test": "tsc -p tsconfig.json && node --test tests/health.test.cjs",
+    "test": "tsc -p tsconfig.json && node --test tests/health.test.cjs tests/password.test.cjs",
+    "test:integration": "tsc -p tsconfig.json && node --test tests/auth.integration.cjs",
     "postinstall": "prisma generate",
     "db:start": "docker compose up -d --wait db",
     "db:stop": "docker compose stop db",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate deploy",
-    "db:status": "prisma migrate status"
+    "db:status": "prisma migrate status",
+    "db:seed:demo": "tsx src/seed-demo.ts"
   },
   "keywords": [],
   "author": "",
