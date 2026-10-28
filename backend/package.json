@@ -1,10 +1,22 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "API do CarciControl",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "type-check": "tsc --noEmit",
+    "test": "tsc -p tsconfig.json && node --test tests/health.test.cjs",
+    "postinstall": "prisma generate",
+    "db:start": "docker compose up -d --wait db",
+    "db:stop": "docker compose stop db",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate deploy",
+    "db:status": "prisma migrate status"
   },
   "keywords": [],
   "author": "",
@@ -12,12 +24,17 @@
   "type": "commonjs",
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^26.6.5",
-    "prisma": "^6.19.3",
-    "ts-node": "^10.9.2",
+    "@types/node": "^24.0.0",
+    "prisma": "6.19.3",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
+    "dotenv": "^18.0.9",
     "express": "^5.3.0"
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24.12.0"
   }
 }
