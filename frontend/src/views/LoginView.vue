@@ -53,7 +53,6 @@ async function submit() {
     <div class="access-heading">
       <span class="access-icon"><LockKeyhole :size="23" :stroke-width="1.6" /></span>
       <h1>Acesse sua conta</h1>
-      <p>Entre para acompanhar o seu cultivo.</p>
     </div>
     <BaseAlert
       v-if="auth.notice === 'expired' || route.query.motivo === 'sessao-expirada'"
@@ -102,6 +101,5 @@ async function submit() {
         >{{ submitting ? 'Entrando…' : 'Entrar' }}<ArrowRight v-if="!submitting" :size="17"
       /></BaseButton>
     </form>
-    <p class="access-note">Precisa de acesso? Solicite uma conta ao administrador da sua equipe.</p>
   </AccessLayout>
 </template>

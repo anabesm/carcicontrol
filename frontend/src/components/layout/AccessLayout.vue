@@ -6,6 +6,5 @@ import AppBrand from './AppBrand.vue'
   <div class="access-layout">
     <header class="access-brand"><AppBrand /></header>
     <main id="conteudo-principal" class="access-card" tabindex="-1"><slot /></main>
-    <footer class="access-footer">Mais clareza para o seu cultivo.</footer>
   </div>
 </template>

@@ -11,7 +11,6 @@ import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseField from '@/components/ui/BaseField.vue'
 import BaseLoading from '@/components/ui/BaseLoading.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -108,19 +107,11 @@ async function submit() {
 
 <template>
   <RouterLink :to="detailRoute" class="text-link back-link"
-    ><ArrowLeft :size="16" />Detalhes do viveiro</RouterLink
+    ><ArrowLeft :size="16" />{{ viveiro?.identificador || 'Detalhes do viveiro' }}</RouterLink
   >
   <div class="page-intro">
     <div>
-      <p class="eyebrow">POVOAMENTO</p>
       <h1>Abrir ciclo</h1>
-      <p class="page-description">
-        {{
-          viveiro
-            ? `Registre o povoamento de ${viveiro.identificador}.`
-            : 'Registre os dados iniciais do cultivo.'
-        }}
-      </p>
     </div>
   </div>
   <BaseAlert
@@ -147,7 +138,6 @@ async function submit() {
   >
     <span class="success-icon"><Check :size="26" /></span>
     <h2 id="cycle-success-heading" ref="successHeading" tabindex="-1">Ciclo iniciado</h2>
-    <p>O povoamento foi registrado e o viveiro está ocupado por este ciclo.</p>
     <dl class="record-details">
       <div>
         <dt>Início</dt>
@@ -250,14 +240,5 @@ async function submit() {
         </div>
       </form>
     </section>
-    <aside class="pond-form-note">
-      <Sprout :size="23" :stroke-width="1.6" />
-      <h2>{{ viveiro.identificador }}</h2>
-      <StatusBadge label="Disponível" />
-      <p>
-        Ao iniciar o ciclo, o viveiro passará a ocupado. Cada viveiro pode ter somente um ciclo
-        ativo.
-      </p>
-    </aside>
   </div>
 </template>

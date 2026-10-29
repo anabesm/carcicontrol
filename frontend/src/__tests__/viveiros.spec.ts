@@ -221,7 +221,7 @@ describe('abertura de ciclos', () => {
       previsaoDespesca: null,
     })
     expect(wrapper.text()).toContain('Ciclo iniciado')
-    expect(wrapper.text()).toContain('viveiro está ocupado')
+    expect(wrapper.text()).toContain('120.000')
     expect(wrapper.find('form').exists()).toBe(false)
   })
 

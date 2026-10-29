@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CircleHelp, ChevronRight, House, LogOut, Waves } from '@lucide/vue'
+import { CircleHelp, ChevronRight, House, LogOut } from '@lucide/vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNavigation } from '@/composables/useNavigation'
 import { useAuthStore } from '@/stores/auth'
@@ -65,10 +65,6 @@ async function logout() {
           <CircleHelp :size="20" :stroke-width="1.8" />
           <span>Ajuda e navegação</span>
         </RouterLink>
-        <div class="sidebar-signature">
-          <Waves :size="18" :stroke-width="1.7" />
-          <span>Mais clareza para o seu cultivo.</span>
-        </div>
       </div>
     </aside>
 

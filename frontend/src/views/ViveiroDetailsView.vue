@@ -23,7 +23,6 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
     ><div class="page-intro">
       <div>
         <h1>Viveiro não encontrado</h1>
-        <p class="page-description">O viveiro solicitado não está disponível neste endereço.</p>
       </div>
     </div>
     <BaseButton to="/viveiros" variant="secondary">Ver viveiros</BaseButton></template
@@ -38,9 +37,7 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
   <template v-else-if="viveiro">
     <div class="page-intro">
       <div>
-        <p class="eyebrow">ÁREA DE CULTIVO</p>
         <h1 class="record-title">{{ viveiro.identificador }}</h1>
-        <p class="page-description">Dados do viveiro e histórico de cultivo.</p>
       </div>
       <StatusBadge v-bind="pondStates[viveiro.status]" />
     </div>
@@ -64,11 +61,14 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
       </section>
       <section class="data-panel active-cycle-panel" aria-labelledby="active-cycle-heading">
         <div class="pond-panel-heading">
-          <h2 id="active-cycle-heading">Ciclo ativo</h2>
+          <h2 id="active-cycle-heading">
+            Ciclo ativo<span v-if="viveiro.cicloAtivo" class="cycle-reference"
+              >#{{ viveiro.cicloAtivo.id }}</span
+            >
+          </h2>
           <StatusBadge v-if="viveiro.cicloAtivo" v-bind="cycleStates[viveiro.cicloAtivo.status]" />
         </div>
         <template v-if="viveiro.cicloAtivo">
-          <p class="cycle-reference">Ciclo #{{ viveiro.cicloAtivo.id }}</p>
           <dl class="record-details">
             <div>
               <dt>Início do povoamento</dt>
@@ -87,23 +87,9 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
               <dd>{{ formatDate(viveiro.cicloAtivo.previsaoDespesca) }}</dd>
             </div>
           </dl>
-          <p class="cycle-availability-note">
-            Este viveiro possui um ciclo ativo. Um novo ciclo só poderá ser aberto quando ele
-            estiver disponível novamente.
-          </p>
         </template>
         <div v-else class="no-active-cycle">
-          <Waves :size="28" :stroke-width="1.5" />
           <h3>Nenhum ciclo ativo</h3>
-          <p>
-            {{
-              viveiro.status === 'DISPONIVEL'
-                ? auth.isAdmin
-                  ? 'O viveiro está disponível para um novo povoamento.'
-                  : 'O administrador pode iniciar um ciclo neste viveiro.'
-                : 'O viveiro precisa estar disponível para iniciar um ciclo.'
-            }}
-          </p>
           <BaseButton
             v-if="auth.isAdmin && viveiro.status === 'DISPONIVEL'"
             :to="{ name: 'novo-ciclo', params: { id: viveiro.id } }"

@@ -30,7 +30,6 @@ async function retry() {
     <div class="access-heading">
       <span class="access-icon"><WifiOff :size="24" /></span>
       <h1>Vamos verificar a conexão</h1>
-      <p>Não foi possível confirmar seu acesso ao sistema.</p>
     </div>
     <BaseAlert title="Serviço indisponível" tone="error" class="form-notice">{{
       auth.connectionError || 'Confira sua conexão e tente novamente.'

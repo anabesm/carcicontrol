@@ -2,13 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouterHistory } from 'vue-router'
 import type { Pinia } from 'pinia'
 import { nextTick } from 'vue'
-import { sections } from '@/config/navigation'
 import { pinia } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { setUnauthorizedHandler } from '@/services/api'
 import { safeRedirect } from '@/utils/access'
 import HomeView from '@/views/HomeView.vue'
-import SectionView from '@/views/SectionView.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 
 export function createAppRouter(
@@ -35,15 +33,6 @@ export function createAppRouter(
         component: AppShell,
         children: [
           { path: '/', name: 'inicio', component: HomeView, meta: { title: 'Visão geral' } },
-          ...sections
-            .filter((section) => !['/funcionarios', '/viveiros'].includes(section.path))
-            .map((section) => ({
-              path: section.path,
-              name: section.path.slice(1),
-              component: SectionView,
-              props: { section },
-              meta: { title: section.title, adminOnly: section.adminOnly ?? false },
-            })),
           {
             path: '/viveiros',
             name: 'viveiros',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-import { ArrowLeft, Plus, Ruler } from '@lucide/vue'
+import { ArrowLeft, Plus } from '@lucide/vue'
 import { useRouter } from 'vue-router'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -78,9 +78,7 @@ async function submit() {
   >
   <div class="page-intro">
     <div>
-      <p class="eyebrow">ÁREAS DE CULTIVO</p>
       <h1>Novo viveiro</h1>
-      <p class="page-description">Cadastre uma área para acompanhar seus ciclos de cultivo.</p>
     </div>
   </div>
   <div class="pond-form-layout">
@@ -169,13 +167,5 @@ async function submit() {
         </div>
       </form>
     </section>
-    <aside class="pond-form-note">
-      <Ruler :size="23" :stroke-width="1.6" />
-      <h2>Pronto para o próximo ciclo</h2>
-      <p>
-        O viveiro será cadastrado como disponível. Depois, abra um ciclo para registrar o
-        povoamento.
-      </p>
-    </aside>
   </div>
 </template>

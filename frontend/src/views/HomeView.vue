@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import { ArrowRight, ArrowUpRight, BookOpen, Search } from '@lucide/vue'
+import { ArrowRight, ArrowUpRight, Search } from '@lucide/vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useAuthStore } from '@/stores/auth'
-import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseField from '@/components/ui/BaseField.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
@@ -20,7 +19,7 @@ const normalize = (value: string) =>
     .toLowerCase()
 const filteredSections = computed(() =>
   sections.value.filter((section) =>
-    normalize(`${section.title} ${section.description}`).includes(normalize(search.value.trim())),
+    normalize(`${section.title} ${section.name}`).includes(normalize(search.value.trim())),
   ),
 )
 
@@ -34,9 +33,7 @@ async function clearSearch() {
 <template>
   <div class="page-intro">
     <div>
-      <p class="eyebrow">PAINEL DO CULTIVO</p>
       <h1>Visão geral</h1>
-      <p class="page-description">As informações do seu cultivo, organizadas em um só lugar.</p>
     </div>
     <span class="preview-label"
       ><span aria-hidden="true"></span>{{ auth.isAdmin ? 'Administrador' : 'Funcionário' }}</span
@@ -48,7 +45,6 @@ async function clearSearch() {
       <div class="section-heading">
         <div>
           <h2 id="areas-heading">Acesse uma área</h2>
-          <p>Escolha por onde começar.</p>
         </div>
         <BaseField
           ref="searchField"
@@ -76,7 +72,6 @@ async function clearSearch() {
             ><ArrowUpRight :size="18" class="section-card-arrow" />
           </div>
           <h3>{{ section.title }}</h3>
-          <p>{{ section.description }}</p>
           <span class="section-card-link">Acessar área<ArrowRight :size="15" /></span>
         </RouterLink>
       </div>
@@ -88,48 +83,9 @@ async function clearSearch() {
       >
         <BaseButton variant="secondary" @click="clearSearch">Limpar busca</BaseButton>
       </BaseEmptyState>
-
-      <BaseAlert title="Estamos preparando as próximas etapas" class="overview-notice">
-        Os viveiros, o ciclo ativo e o histórico já podem ser consultados.
-        <template v-if="auth.isAdmin"
-          >Você também pode cadastrar viveiros, abrir ciclos e gerenciar funcionários.
-        </template>
-        Medições e demais registros serão disponibilizados nas próximas entregas.
-      </BaseAlert>
     </section>
 
-    <aside class="home-rail" aria-label="Orientações e conexão">
-      <section class="guide-card">
-        <span class="guide-icon"><BookOpen :size="21" :stroke-width="1.6" /></span>
-        <h2>Uma rotina mais organizada</h2>
-        <p>Do viveiro aos registros do dia, encontre cada informação na sua área.</p>
-        <ol class="guide-steps">
-          <li>
-            <span>1</span>
-            <div>
-              <strong>Conheça os viveiros</strong>
-              <p>Espaços de cultivo e seus ciclos.</p>
-            </div>
-          </li>
-          <li>
-            <span>2</span>
-            <div>
-              <strong>Acompanhe as medições</strong>
-              <p>Qualidade da água e alertas.</p>
-            </div>
-          </li>
-          <li>
-            <span>3</span>
-            <div>
-              <strong>Organize os registros</strong>
-              <p>{{ auth.isAdmin ? 'Despesas, vendas e equipe.' : 'Informações do cultivo.' }}</p>
-            </div>
-          </li>
-        </ol>
-        <RouterLink to="/ajuda" class="text-link"
-          >Guia de navegação<ArrowRight :size="15"
-        /></RouterLink>
-      </section>
+    <aside class="home-rail" aria-label="Conexão">
       <ConnectionStatus />
     </aside>
   </div>

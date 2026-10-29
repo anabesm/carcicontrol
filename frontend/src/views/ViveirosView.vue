@@ -80,9 +80,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="page-intro">
     <div>
-      <p class="eyebrow">ÁREAS DE CULTIVO</p>
       <h1>Viveiros e ciclos</h1>
-      <p class="page-description">Acompanhe a ocupação e o histórico de cada viveiro.</p>
     </div>
     <BaseButton v-if="auth.isAdmin" to="/viveiros/novo"><Plus :size="18" />Novo viveiro</BaseButton>
   </div>

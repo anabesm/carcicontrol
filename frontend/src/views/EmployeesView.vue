@@ -55,9 +55,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="page-intro">
     <div>
-      <p class="eyebrow">GESTÃO DE ACESSOS</p>
       <h1>Funcionários</h1>
-      <p class="page-description">As pessoas que fazem parte da sua operação.</p>
     </div>
     <BaseButton to="/funcionarios/novo"><Plus :size="18" />Novo funcionário</BaseButton>
   </div>

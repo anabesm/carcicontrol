@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-import { ArrowLeft, Check, ShieldCheck, UserPlus } from '@lucide/vue'
+import { ArrowLeft, Check, UserPlus } from '@lucide/vue'
 import { useRouter } from 'vue-router'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -96,9 +96,7 @@ async function startAnother() {
   >
   <div class="page-intro">
     <div>
-      <p class="eyebrow">GESTÃO DE ACESSOS</p>
       <h1>Novo funcionário</h1>
-      <p class="page-description">Libere o acesso de uma pessoa da sua equipe.</p>
     </div>
   </div>
   <section v-if="created" class="data-panel success-panel" aria-labelledby="success-heading">
@@ -216,13 +214,5 @@ async function startAnother() {
         </div>
       </form>
     </section>
-    <aside class="employee-form-note">
-      <ShieldCheck :size="23" :stroke-width="1.6" />
-      <h2>Acesso à operação</h2>
-      <p>
-        O novo acesso terá o perfil de funcionário. A gestão de usuários fica com o administrador.
-      </p>
-      <p>Compartilhe a senha inicial com o funcionário por um canal seguro.</p>
-    </aside>
   </div>
 </template>
