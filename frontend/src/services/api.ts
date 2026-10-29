@@ -10,6 +10,13 @@ export class ApiError extends Error {
 
 interface ApiOptions extends Omit<RequestInit, 'body' | 'credentials'> {
   body?: unknown
+  notifyUnauthorized?: boolean
+}
+
+let unauthorizedHandler: { handle: () => void; version: () => number } | undefined
+
+export function setUnauthorizedHandler(handle?: () => void, version: () => number = () => 0) {
+  unauthorizedHandler = handle ? { handle, version } : undefined
 }
 
 export async function apiRequest<T = void>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -17,7 +24,9 @@ export async function apiRequest<T = void>(path: string, options: ApiOptions = {
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
   if (options.body !== undefined) headers.set('Content-Type', 'application/json')
-  const { body, ...requestOptions } = options
+  const { body, notifyUnauthorized = true, ...requestOptions } = options
+  const handler = unauthorizedHandler
+  const sessionVersion = handler?.version()
 
   let response: Response
   try {
@@ -38,6 +47,14 @@ export async function apiRequest<T = void>(path: string, options: ApiOptions = {
   const isJson = response.headers.get('Content-Type')?.includes('application/json')
   const data: unknown = isJson ? await response.json().catch(() => undefined) : undefined
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      notifyUnauthorized &&
+      handler === unauthorizedHandler &&
+      handler?.version() === sessionVersion
+    ) {
+      handler?.handle()
+    }
     const message =
       data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
         ? data.error

@@ -1,11 +1,14 @@
-// https://on.cypress.io/api
-
-describe('Navegação principal', () => {
-  it('abre a visão geral e permite acessar os viveiros', () => {
-    cy.visit('/')
-    cy.contains('h1', 'Visão geral')
-    cy.get('.section-card').contains('Viveiros e ciclos').click()
-    cy.location('pathname').should('eq', '/viveiros')
-    cy.contains('h1', 'Viveiros e ciclos')
+describe('Acesso ao sistema', () => {
+  it('encaminha uma visita sem sessão ao login', () => {
+    cy.intercept('GET', '/api/auth/me', {
+      statusCode: 401,
+      body: { error: 'Autenticação necessária.' },
+    })
+    cy.visit('/funcionarios/novo')
+    cy.location('pathname').should('eq', '/login')
+    cy.contains('h1', 'Acesse sua conta')
+    cy.contains('button', 'Entrar').click()
+    cy.contains('Informe o e-mail.')
+    cy.contains('Informe a senha.')
   })
 })

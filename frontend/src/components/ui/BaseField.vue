@@ -13,6 +13,10 @@ const props = withDefaults(
     disabled?: boolean
     hideLabel?: boolean
     autocomplete?: string
+    name?: string
+    maxlength?: number
+    minlength?: number
+    inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal' | 'search'
   }>(),
   { type: 'text', required: false, disabled: false, hideLabel: false },
 )
@@ -35,7 +39,10 @@ defineExpose({ focus: () => input.value?.focus() })
     <label :for="fieldId" class="field-label" :class="{ 'sr-only': hideLabel }">
       {{ label }}<span v-if="required" aria-hidden="true"> *</span>
     </label>
-    <div class="field-control" :class="{ 'field-control--icon': $slots.leading }">
+    <div
+      class="field-control"
+      :class="{ 'field-control--icon': $slots.leading, 'field-control--trailing': $slots.trailing }"
+    >
       <span v-if="$slots.leading" class="field-icon" aria-hidden="true"
         ><slot name="leading"
       /></span>
@@ -48,10 +55,15 @@ defineExpose({ focus: () => input.value?.focus() })
         :required="required"
         :disabled="disabled"
         :autocomplete="autocomplete"
+        :name="name"
+        :maxlength="maxlength"
+        :minlength="minlength"
+        :inputmode="inputmode"
         :aria-invalid="error ? 'true' : undefined"
         :aria-describedby="describedBy"
         @input="model = ($event.target as HTMLInputElement).value"
       />
+      <span v-if="$slots.trailing" class="field-trailing"><slot name="trailing" /></span>
     </div>
     <p v-if="hint" :id="`${fieldId}-hint`" class="field-hint">{{ hint }}</p>
     <p v-if="error" :id="`${fieldId}-error`" class="field-error" role="alert">{{ error }}</p>

@@ -1,16 +1,47 @@
 <script setup lang="ts">
-import { CircleHelp, ChevronRight, House, LogIn, Waves } from '@lucide/vue'
-import { useRoute } from 'vue-router'
-import { navigation } from '@/config/navigation'
+import { computed, ref } from 'vue'
+import { CircleHelp, ChevronRight, House, LogOut, Waves } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useNavigation } from '@/composables/useNavigation'
+import { useAuthStore } from '@/stores/auth'
 import AppBrand from './AppBrand.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseAlert from '@/components/ui/BaseAlert.vue'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
+const { visibleNavigation: navigation } = useNavigation()
+const signingOut = ref(false)
+const logoutError = ref('')
+const initials = computed(() =>
+  auth.usuario?.nome
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase(),
+)
+async function logout() {
+  if (signingOut.value) return
+  signingOut.value = true
+  logoutError.value = ''
+  try {
+    await auth.signOut()
+    await router.replace('/login')
+  } catch (error) {
+    logoutError.value =
+      error instanceof Error ? error.message : 'Não foi possível sair. Tente novamente.'
+  } finally {
+    signingOut.value = false
+  }
+}
 </script>
 
 <template>
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
-  <div class="app-shell">
+  <div v-if="auth.usuario" class="app-shell">
     <aside class="sidebar" aria-label="Menu lateral">
       <div class="sidebar-brand"><AppBrand /></div>
       <div class="nav-heading">ÁREA DE TRABALHO</div>
@@ -53,11 +84,27 @@ const route = useRoute()
             <CircleHelp :size="19" :stroke-width="1.8" /><span>Ajuda</span>
           </RouterLink>
           <span class="topbar-separator" aria-hidden="true"></span>
-          <BaseButton to="/login" size="small"><LogIn :size="16" />Entrar</BaseButton>
+          <div class="account-identity">
+            <span class="account-avatar" aria-hidden="true">{{ initials }}</span>
+            <div class="account-copy">
+              <strong>{{ auth.usuario.nome }}</strong
+              ><span>{{ auth.isAdmin ? 'Administrador' : 'Funcionário' }}</span>
+            </div>
+          </div>
+          <BaseButton size="small" variant="ghost" :loading="signingOut" @click="logout"
+            ><LogOut v-if="!signingOut" :size="16" />Sair</BaseButton
+          >
         </div>
       </header>
 
       <main id="conteudo-principal" class="main-content" tabindex="-1">
+        <BaseAlert
+          v-if="logoutError"
+          title="Não foi possível encerrar a sessão"
+          tone="error"
+          class="form-notice"
+          >{{ logoutError }}</BaseAlert
+        >
         <RouterView />
       </main>
       <footer class="workspace-footer">
@@ -65,7 +112,11 @@ const route = useRoute()
       </footer>
     </div>
 
-    <nav class="mobile-nav" aria-label="Navegação principal no celular">
+    <nav
+      class="mobile-nav"
+      :style="{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }"
+      aria-label="Navegação principal no celular"
+    >
       <RouterLink
         v-for="item in navigation"
         :key="item.path"

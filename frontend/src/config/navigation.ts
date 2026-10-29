@@ -9,6 +9,7 @@ export interface Section {
   icon: Component
   action: string
   preview: string
+  adminOnly?: boolean
 }
 
 export const sections: Section[] = [
@@ -34,6 +35,7 @@ export const sections: Section[] = [
   },
   {
     path: '/financeiro',
+    adminOnly: true,
     name: 'Financeiro',
     title: 'Financeiro',
     icon: Wallet,
@@ -44,21 +46,23 @@ export const sections: Section[] = [
   },
   {
     path: '/funcionarios',
+    adminOnly: true,
     name: 'Funcionários',
     title: 'Funcionários',
     icon: UsersRound,
     description: 'Encontre as pessoas que fazem parte da sua operação.',
     action: 'Novo funcionário',
-    preview: 'A listagem e o cadastro de funcionários serão disponibilizados na próxima etapa.',
+    preview: 'Cadastre e consulte os acessos da equipe.',
   },
 ]
 
 export const navigation = [
-  { path: '/', name: 'Início', mobileName: 'Início', icon: House },
+  { path: '/', name: 'Início', mobileName: 'Início', icon: House, adminOnly: false },
   ...sections.map((section) => ({
     path: section.path,
     name: section.name,
     mobileName: section.path === '/funcionarios' ? 'Equipe' : section.name,
     icon: section.icon,
+    adminOnly: section.adminOnly ?? false,
   })),
 ]

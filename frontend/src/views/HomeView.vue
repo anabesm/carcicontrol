@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { ArrowRight, ArrowUpRight, BookOpen, Search } from '@lucide/vue'
-import { sections } from '@/config/navigation'
+import { useNavigation } from '@/composables/useNavigation'
+import { useAuthStore } from '@/stores/auth'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseField from '@/components/ui/BaseField.vue'
@@ -9,6 +10,8 @@ import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 import ConnectionStatus from '@/components/system/ConnectionStatus.vue'
 
 const search = ref('')
+const auth = useAuthStore()
+const { visibleSections: sections } = useNavigation()
 const searchField = ref<InstanceType<typeof BaseField>>()
 const normalize = (value: string) =>
   value
@@ -16,7 +19,7 @@ const normalize = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
 const filteredSections = computed(() =>
-  sections.filter((section) =>
+  sections.value.filter((section) =>
     normalize(`${section.title} ${section.description}`).includes(normalize(search.value.trim())),
   ),
 )
@@ -35,7 +38,9 @@ async function clearSearch() {
       <h1>Visão geral</h1>
       <p class="page-description">As informações do seu cultivo, organizadas em um só lugar.</p>
     </div>
-    <span class="preview-label"><span aria-hidden="true"></span>Prévia da interface</span>
+    <span class="preview-label"
+      ><span aria-hidden="true"></span>{{ auth.isAdmin ? 'Administrador' : 'Funcionário' }}</span
+    >
   </div>
 
   <div class="home-grid">
@@ -85,8 +90,9 @@ async function clearSearch() {
       </BaseEmptyState>
 
       <BaseAlert title="Estamos preparando as próximas etapas" class="overview-notice">
-        Você já pode explorar a navegação. Os cadastros e relatórios serão disponibilizados nas
-        próximas entregas.
+        <template v-if="auth.isAdmin">A gestão de funcionários já está disponível. </template>Os
+        registros de cultivo e o acompanhamento dos viveiros serão disponibilizados nas próximas
+        entregas.
       </BaseAlert>
     </section>
 
@@ -114,7 +120,7 @@ async function clearSearch() {
             <span>3</span>
             <div>
               <strong>Organize os registros</strong>
-              <p>Despesas, vendas e equipe.</p>
+              <p>{{ auth.isAdmin ? 'Despesas, vendas e equipe.' : 'Informações do cultivo.' }}</p>
             </div>
           </li>
         </ol>

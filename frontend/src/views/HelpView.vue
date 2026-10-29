@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ArrowRight, CircleHelp, Search } from '@lucide/vue'
-import { navigation } from '@/config/navigation'
+import { useNavigation } from '@/composables/useNavigation'
+import { useAuthStore } from '@/stores/auth'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
+const { visibleNavigation: navigation } = useNavigation()
+const auth = useAuthStore()
 </script>
 
 <template>
@@ -36,8 +39,11 @@ import BaseAlert from '@/components/ui/BaseAlert.vue'
         novamente se necessário.
       </p>
       <BaseAlert title="O que já está disponível"
-        >Nesta prévia, você pode testar a navegação, a busca de seções e a verificação de conexão.
-        Os formulários de acesso e cadastro serão adicionados nas próximas etapas.</BaseAlert
+        >Você já pode entrar e sair da sua conta, navegar pelas áreas e conferir a conexão.
+        <template v-if="auth.isAdmin"
+          >Em Funcionários, consulte e cadastre os acessos da equipe.</template
+        >
+        Os registros de cultivo serão disponibilizados nas próximas etapas.</BaseAlert
       >
     </section>
   </div>
