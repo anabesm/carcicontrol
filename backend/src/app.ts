@@ -6,6 +6,7 @@ import type { SessionOptions } from "./auth/session";
 import { HttpError } from "./lib/http-error";
 import { createUsuariosRouter } from "./usuarios/routes";
 import { createViveirosRouter } from "./viveiros/routes";
+import { createMedicoesRouter } from "./medicoes/routes";
 
 export function createApp(checkDatabase: () => Promise<void>, auth?: {
   db: PrismaClient;
@@ -33,6 +34,7 @@ export function createApp(checkDatabase: () => Promise<void>, auth?: {
     app.use("/auth", createAuthRouter(auth.db, auth.session));
     app.use("/usuarios", createUsuariosRouter(auth.db, auth.session));
     app.use("/viveiros", createViveirosRouter(auth.db, auth.session));
+    app.use(createMedicoesRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {
@@ -41,7 +43,7 @@ export function createApp(checkDatabase: () => Promise<void>, auth?: {
 
   const handleError: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
     if (error instanceof HttpError) {
-      response.status(error.status).json({ error: error.message });
+      response.status(error.status).json({ error: error.message, ...(error.detalhes ? { detalhes: error.detalhes } : {}) });
     } else if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json({ error: "JSON inválido." });
     } else if (error && typeof error === "object" && "type" in error && error.type === "entity.too.large") {

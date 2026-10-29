@@ -67,9 +67,9 @@ model Usuario {
   criadoEm  DateTime      @default(now())
   criadoPor Int?
 
-  medicoesRegistadas Medicao[] @relation("RegistadoPor")
-  alertasResolvidos  Alerta[]  @relation("ResolvidoPor")
-  sessoes           SessaoUsuario[]
+  medicoesRegistadas Medicao[]       @relation("RegistadoPor")
+  alertasResolvidos  Alerta[]        @relation("ResolvidoPor")
+  sessoes            SessaoUsuario[]
 }
 
 model SessaoUsuario {
@@ -151,24 +151,41 @@ model FaixaParametro {
   maxCritico         Float?
   minAcaoRecomendada String?
   maxAcaoRecomendada String?
+  descricao          String?
+  demonstrativa      Boolean   @default(false)
   ativo              Boolean   @default(true)
   criadoPor          Int
   criadoEm           DateTime  @default(now())
+
+  medicoes Medicao[]
+
+  @@index([parametroId, viveiroId, ativo])
 }
 
 model Medicao {
-  id              Int          @id @default(autoincrement())
-  parametroId     Int
-  parametro       Parametro    @relation(fields: [parametroId], references: [id])
-  cicloId         Int
-  ciclo           CicloCultivo @relation(fields: [cicloId], references: [id])
-  valor           Float
-  registradoPorId Int
-  registradoPor   Usuario      @relation("RegistadoPor", fields: [registradoPorId], references: [id])
-  criadoEm        DateTime     @default(now())
-  editadoEm       DateTime     @updatedAt
+  id                  Int             @id @default(autoincrement())
+  parametroId         Int
+  parametro           Parametro       @relation(fields: [parametroId], references: [id])
+  cicloId             Int
+  ciclo               CicloCultivo    @relation(fields: [cicloId], references: [id])
+  valor               Float
+  unidade             String
+  medidoEm            DateTime
+  confirmadaForaFaixa Boolean         @default(false)
+  faixaParametroId    Int?
+  faixaParametro      FaixaParametro? @relation(fields: [faixaParametroId], references: [id], onDelete: SetNull)
+  minIdealAplicado    Float?
+  maxIdealAplicado    Float?
+  faixaDemonstrativa  Boolean         @default(false)
+  registradoPorId     Int
+  registradoPor       Usuario         @relation("RegistadoPor", fields: [registradoPorId], references: [id])
+  criadoEm            DateTime        @default(now())
+  editadoEm           DateTime        @updatedAt
 
   alertas Alerta[]
+
+  @@index([cicloId, medidoEm, id])
+  @@index([parametroId, medidoEm, id])
 }
 
 model Alerta {
@@ -184,6 +201,9 @@ model Alerta {
   resolvidoPorId Int?
   resolvidoPor   Usuario?        @relation("ResolvidoPor", fields: [resolvidoPorId], references: [id])
   resolvidoEm    DateTime?
+
+  @@index([medicaoId])
+  @@index([status, dataHora, id])
 }
 
 model CompraDespesa {

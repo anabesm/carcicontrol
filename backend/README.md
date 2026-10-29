@@ -109,7 +109,7 @@ inicialização da API, nem recuperação de senha ou edição de usuários nest
 ### Testes de integração
 
 Os testes comuns (`npm test`) verificam o endpoint de saúde, o hash das senhas e
-a validação de viveiros e povoamento.
+a validação de viveiros, povoamento e medições.
 Para os testes com PostgreSQL, crie uma vez o banco separado de testes:
 
 ```powershell
@@ -120,12 +120,15 @@ npm run test:integration
 Se o banco já existir, reutilize-o. Configure `TEST_DATABASE_URL` para esse banco
 antes de executar. A suíte exige um nome terminado em `_test`, recusa o banco da
 aplicação, aplica as migrations e cria usuários com identificadores exclusivos.
-Ao terminar, remove somente os usuários, sessões, viveiros e ciclos que criou.
+Ao terminar, remove somente os dados que criou, incluindo usuários, sessões,
+viveiros, ciclos, medições, alertas e configurações de teste.
 
 Os testes cobrem credenciais incorretas, sessão ausente/expirada, permissões,
 cadastro concorrente, respostas sem senhas, inativação, logout e seed repetido.
 Também verificam permissões de viveiros, histórico, identificadores equivalentes,
 oito aberturas simultâneas no mesmo viveiro e reversão da ocupação em caso de falha.
+As medições são verificadas com valores ideais, inválidos, anomalias sem
+confirmação e anomalias confirmadas, além de unidades, datas, permissões e histórico.
 
 ## Viveiros e ciclos
 
@@ -176,10 +179,102 @@ IDs inválidos retornam `400`; viveiros inexistentes, `404`; ausência de sessã
 `401`; e operações administrativas feitas por funcionário, `403`. Edição,
 inativação e encerramento de ciclos ficam para as próximas etapas.
 
+## Medições de água e alertas
+
+As rotas exigem uma sessão de administrador ou funcionário. Os dois perfis podem
+registrar e consultar medições e consultar alertas.
+
+| Método | Rota | Finalidade |
+| --- | --- | --- |
+| GET | `/parametros?cicloId=1` | Parâmetros ativos, unidades, limites aceitos e faixa ideal aplicável ao ciclo |
+| POST | `/medicoes` | Registrar uma medição de ciclo ativo |
+| GET | `/medicoes?cicloId=1` | Histórico de medições, inclusive de ciclos já finalizados |
+| GET | `/alertas?cicloId=1&status=PENDENTE` | Alertas com a medição, parâmetro, ciclo, viveiro e responsável |
+
+O catálogo permite omitir `cicloId` para consultar as faixas globais. Uma faixa
+ativa específica do viveiro prevalece sobre a global. Configurações ausentes,
+ambíguas ou incoerentes impedem a gravação, com resposta `503`.
+
+Prepare os quatro parâmetros e seus exemplos explicitamente, após as migrations
+e o seed do administrador:
+
+```powershell
+npm run db:seed:medicoes
+```
+
+O seed usa o administrador ativo identificado por `DEMO_ADMIN_EMAIL`, cria apenas
+parâmetros e faixas ausentes e preserva configurações existentes. Não cria leituras
+nem alertas e não é executado automaticamente na inicialização da API.
+
+| Código | Parâmetro | Unidade | Limites de entrada da demonstração | Faixa ideal de exemplo |
+| --- | --- | --- | --- | --- |
+| OD | Oxigênio dissolvido | mg/L | 0 a 30 | 5 a 7 |
+| TEMPERATURA | Temperatura | °C | -5 a 60 | 28 a 33 |
+| SALINIDADE | Salinidade | ppt | 0 a 100 | 15 a 35 |
+| PH | pH | pH (adimensional) | 0 a 14 | 7,5 a 8,5 |
+
+Esses limites de entrada são operacionais para a demonstração. As faixas ideais
+usam exemplos do [guia de qualidade da água para cultivo de camarões da FAO](https://www.fao.org/fishery/docs/CDrom/bobp/cd1/Bobp/Publns/MISC/GUIDELINES.pdf).
+Cada exemplo é identificado por `demonstrativa: true` e descrição no catálogo;
+a marcação também acompanha a faixa aplicada e os alertas gerados.
+
+Exemplo de requisição (use os IDs retornados pela API):
+
+```json
+{
+  "cicloId": 1,
+  "parametroId": 1,
+  "valor": 4,
+  "unidade": "mg/L",
+  "medidoEm": "2026-10-29T08:30:00-03:00"
+}
+```
+
+`medidoEm` exige ISO 8601 com segundos e fuso (`Z` ou deslocamento), aceita até
+três casas de milissegundos e é devolvido em UTC. A leitura não pode anteceder o
+início do ciclo nem estar no futuro. `criadoEm` registra separadamente o horário
+de cadastro. O valor deve ser numérico e finito, com a unidade exata do catálogo;
+não há conversão automática de unidades. O responsável vem da sessão no servidor.
+Campos extras como `registradoPorId`, `gravidade` e limites enviados pelo cliente
+são recusados.
+
+Valores fora dos limites de entrada retornam `400`, mesmo com confirmação. Valores
+dentro dos limites, porém fora da faixa ideal, retornam `409`, com
+`detalhes.codigo = "CONFIRMACAO_ANOMALIA_NECESSARIA"`, valor, instante, unidade e
+faixa aplicável. Essa resposta não grava medição nem alerta. Após confirmação
+explícita, reenvie o mesmo corpo com `"confirmarAnomalia": true`. O servidor
+revalida todos os dados e grava a medição e um alerta `PENDENTE` na mesma transação.
+O campo de confirmação aceita apenas booleanos. Uma confirmação em valor ideal
+não gera alerta.
+
+O alerta preserva valor, limite violado, gravidade e instante de geração. A
+gravidade é `MEDIA` fora do ideal e `ALTA` quando ultrapassa um limite crítico
+configurado. Os exemplos iniciais têm apenas limites ideais. A medição guarda
+uma cópia da unidade, faixa ideal e marcação de exemplo, preservando o contexto
+mesmo após alterações futuras de configuração. As respostas do responsável
+incluem apenas ID e nome.
+
+As consultas retornam `{ "medicoes": [...], "total": ..., "limite": ..., "offset": ... }`
+ou a mesma estrutura com `alertas`. Aceitam filtros `cicloId` e `parametroId`;
+alertas aceitam também `status` (`PENDENTE`, `RESOLVIDO` ou `IGNORADO`). A paginação
+usa `limite` de 1 a 100, padrão 50, e `offset` não negativo. Medições são ordenadas
+por `medidoEm` e ID decrescentes; alertas, por geração e ID decrescentes.
+
+O registro responde `201` com `{ "medicao": ... }` e seus alertas. Ciclo inexistente
+retorna `404`; ciclo finalizado/cancelado, `409`; ausência de sessão, `401`.
+Rotinas de horários, configuração por fase e resolução de alertas ficam para
+etapas posteriores.
+
 ## Migrations e dados existentes
 
 `npm run db:migrate` aplica as migrations pendentes; não redefine o banco.
 A migration inicial reproduz o schema existente do projeto.
+
+A migration `20261029000000_medicoes_alertas` acrescenta data/hora da leitura,
+unidade e contexto da faixa aplicada. Registros anteriores preservam seu instante
+de cadastro como `medidoEm` e recebem a unidade então cadastrada no parâmetro.
+O contexto de faixa dos registros anteriores fica vazio, pois não havia esse
+registro de auditoria. Não há exclusão de dados nem seed automático nessa migration.
 
 A migration `20261028010000_viveiros_ciclos_constraints` adiciona os índices de
 identificador normalizado, ciclo ativo único e histórico de ciclos. Os dois
