@@ -5,6 +5,7 @@ import { createAuthRouter } from "./auth/routes";
 import type { SessionOptions } from "./auth/session";
 import { HttpError } from "./lib/http-error";
 import { createUsuariosRouter } from "./usuarios/routes";
+import { createViveirosRouter } from "./viveiros/routes";
 
 export function createApp(checkDatabase: () => Promise<void>, auth?: {
   db: PrismaClient;
@@ -31,6 +32,7 @@ export function createApp(checkDatabase: () => Promise<void>, auth?: {
   if (auth) {
     app.use("/auth", createAuthRouter(auth.db, auth.session));
     app.use("/usuarios", createUsuariosRouter(auth.db, auth.session));
+    app.use("/viveiros", createViveirosRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {

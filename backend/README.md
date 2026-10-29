@@ -108,7 +108,8 @@ inicialização da API, nem recuperação de senha ou edição de usuários nest
 
 ### Testes de integração
 
-Os testes comuns (`npm test`) verificam o endpoint de saúde e o hash das senhas.
+Os testes comuns (`npm test`) verificam o endpoint de saúde, o hash das senhas e
+a validação de viveiros e povoamento.
 Para os testes com PostgreSQL, crie uma vez o banco separado de testes:
 
 ```powershell
@@ -119,15 +120,74 @@ npm run test:integration
 Se o banco já existir, reutilize-o. Configure `TEST_DATABASE_URL` para esse banco
 antes de executar. A suíte exige um nome terminado em `_test`, recusa o banco da
 aplicação, aplica as migrations e cria usuários com identificadores exclusivos.
-Ao terminar, remove somente os usuários que criou e suas sessões.
+Ao terminar, remove somente os usuários, sessões, viveiros e ciclos que criou.
 
 Os testes cobrem credenciais incorretas, sessão ausente/expirada, permissões,
 cadastro concorrente, respostas sem senhas, inativação, logout e seed repetido.
+Também verificam permissões de viveiros, histórico, identificadores equivalentes,
+oito aberturas simultâneas no mesmo viveiro e reversão da ocupação em caso de falha.
+
+## Viveiros e ciclos
+
+| Método | Rota | Acesso | Corpo JSON |
+| --- | --- | --- | --- |
+| GET | `/viveiros` | Administrador e funcionário | — |
+| GET | `/viveiros/:id` | Administrador e funcionário | — |
+| POST | `/viveiros` | Administrador | `identificador`, `area`, `profundidadeMedia`, `localizacao` opcional |
+| POST | `/viveiros/:id/ciclos` | Administrador | `dataInicio`, `qtdLarvasInicial`, `fornecedorLarvas` e `previsaoDespesca` opcionais |
+
+O cadastro do viveiro responde `201` com `{ "viveiro": ... }` e define a situação
+`DISPONIVEL` no servidor. Área e profundidade média devem ser números positivos;
+o identificador admite até 80 caracteres e a localização até 240. Identificadores
+equivalentes por maiúsculas/minúsculas ou espaços nas extremidades são duplicados
+e retornam `409`. Os textos dos registros existentes são preservados.
+
+A listagem usa `{ "viveiros": [...] }`, ordenada por identificador e ID. Cada
+item inclui os dados do viveiro, `cicloAtivo` (ou `null`) e `totalCiclos`. O detalhe
+usa `{ "viveiro": ... }` e inclui também `ciclos`, com todo o histórico em ordem
+decrescente de início e, em caso de empate, de ID. Ciclos finalizados e cancelados
+continuam disponíveis para consulta.
+
+Exemplo de abertura de ciclo:
+
+```json
+{
+  "dataInicio": "2026-10-28",
+  "qtdLarvasInicial": 120000,
+  "fornecedorLarvas": "Fornecedor de demonstração",
+  "previsaoDespesca": "2027-02-28"
+}
+```
+
+As datas de entrada usam `AAAA-MM-DD` e são armazenadas à meia-noite UTC. A
+previsão não pode anteceder o início. A quantidade de larvas deve ser um inteiro
+entre 1 e 2147483647; o fornecedor admite até 160 caracteres. Campos extras,
+incluindo `status`, `viveiroId` ou `criadoPor`, são rejeitados. A resposta `201`
+usa `{ "ciclo": ... }`; a autoria vem da sessão e a situação inicial é `ATIVO`.
+
+Somente um viveiro `DISPONIVEL` e sem ciclo ativo pode iniciar um ciclo. A abertura
+disputa a linha do viveiro por atualização condicional e grava `OCUPADO` junto
+com o novo ciclo em uma única transação. O índice único parcial do PostgreSQL
+também impede dois ciclos ativos no mesmo viveiro, inclusive em gravações que
+não passem pela API. Várias solicitações simultâneas produzem uma única abertura;
+as demais recebem `409`. Falhas na gravação desfazem a alteração de ocupação.
+
+IDs inválidos retornam `400`; viveiros inexistentes, `404`; ausência de sessão,
+`401`; e operações administrativas feitas por funcionário, `403`. Edição,
+inativação e encerramento de ciclos ficam para as próximas etapas.
 
 ## Migrations e dados existentes
 
 `npm run db:migrate` aplica as migrations pendentes; não redefine o banco.
 A migration inicial reproduz o schema existente do projeto.
+
+A migration `20261028010000_viveiros_ciclos_constraints` adiciona os índices de
+identificador normalizado, ciclo ativo único e histórico de ciclos. Os dois
+primeiros são definidos em SQL porque o Prisma 6 não os representa no schema.
+A migration não altera registros e executa os índices na mesma transação. Se já
+houver identificadores equivalentes ou múltiplos ciclos ativos em um viveiro, ela
+falha preservando os dados; essas inconsistências precisam ser revisadas antes
+de tentar aplicá-la novamente. Use migrations para manter essas restrições.
 
 Se o banco já possui tabelas e ainda não tem histórico do Prisma Migrate, não
 aplique a inicial diretamente nem execute reset. Primeiro faça backup e compare

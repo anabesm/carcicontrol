@@ -121,6 +121,9 @@ model CicloCultivo {
   despesas CompraDespesa[]
   vendas   Venda[]
   eventos  EventoOperacional[]
+
+  // O índice único parcial para status ATIVO é definido na migration SQL.
+  @@index([viveiroId, dataInicio, id])
 }
 
 model Parametro {
