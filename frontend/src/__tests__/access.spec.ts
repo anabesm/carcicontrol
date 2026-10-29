@@ -57,7 +57,7 @@ describe('proteção das rotas', () => {
     },
   )
 
-  it.each(['/viveiros', '/viveiros/1'])(
+  it.each(['/viveiros', '/viveiros/1', '/medicoes'])(
     'permite ao funcionário consultar %s após restaurar a sessão',
     async (path) => {
       vi.mocked(authApi.me).mockResolvedValue({ usuario: { ...admin, perfil: 'FUNCIONARIO' } })

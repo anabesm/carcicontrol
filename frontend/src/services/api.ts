@@ -2,6 +2,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly detalhes?: unknown,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -59,7 +60,9 @@ export async function apiRequest<T = void>(path: string, options: ApiOptions = {
       data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
         ? data.error
         : 'Não foi possível concluir a solicitação. Tente novamente.'
-    throw new ApiError(response.status, message)
+    const detalhes =
+      data && typeof data === 'object' && 'detalhes' in data ? data.detalhes : undefined
+    throw new ApiError(response.status, message, detalhes)
   }
   if (data === undefined)
     throw new ApiError(response.status, 'O sistema retornou uma resposta inválida.')

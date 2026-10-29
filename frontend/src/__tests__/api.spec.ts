@@ -7,6 +7,24 @@ afterEach(() => {
 })
 
 describe('cliente da API', () => {
+  it('preserva os detalhes da confirmação de anomalia retornados pela API', async () => {
+    const detalhes = { codigo: 'CONFIRMACAO_ANOMALIA_NECESSARIA', valor: 4 }
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: 'Confirme o valor.', detalhes }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ),
+    )
+    await expect(apiRequest('/medicoes', { method: 'POST' })).rejects.toMatchObject({
+      status: 409,
+      detalhes,
+    })
+  })
   it('envia JSON e cookies para a API pela mesma origem', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ usuario: { id: 1 } }), {

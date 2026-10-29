@@ -87,6 +87,13 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
               <dd>{{ formatDate(viveiro.cicloAtivo.previsaoDespesca) }}</dd>
             </div>
           </dl>
+          <div class="active-cycle-actions">
+            <BaseButton
+              :to="`/medicoes?viveiroId=${viveiro.id}&cicloId=${viveiro.cicloAtivo.id}`"
+              variant="secondary"
+              >Medições do ciclo</BaseButton
+            >
+          </div>
         </template>
         <div v-else class="no-active-cycle">
           <h3>Nenhum ciclo ativo</h3>
@@ -128,6 +135,7 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
             <th scope="col">Início</th>
             <th scope="col">Encerramento</th>
             <th scope="col">Larvas iniciais</th>
+            <th scope="col"><span class="sr-only">Medições</span></th>
           </tr>
         </thead>
         <tbody>
@@ -145,6 +153,14 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
               }}
             </td>
             <td data-label="Larvas iniciais">{{ formatMeasure(cycle.qtdLarvasInicial) }}</td>
+            <td>
+              <RouterLink
+                :to="`/medicoes?viveiroId=${viveiro.id}&cicloId=${cycle.id}`"
+                class="text-link"
+                :aria-label="`Ver medições do ciclo ${cycle.id}`"
+                >Ver medições</RouterLink
+              >
+            </td>
           </tr>
         </tbody>
       </table>

@@ -5,7 +5,7 @@ const props = withDefaults(
   defineProps<{
     id?: string
     label: string
-    type?: 'text' | 'email' | 'password' | 'search' | 'number' | 'tel' | 'date'
+    type?: 'text' | 'email' | 'password' | 'search' | 'number' | 'tel' | 'date' | 'datetime-local'
     placeholder?: string
     hint?: string
     error?: string

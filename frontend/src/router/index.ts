@@ -60,6 +60,12 @@ export function createAppRouter(
             meta: { title: 'Abrir ciclo', adminOnly: true },
           },
           {
+            path: '/medicoes',
+            name: 'medicoes',
+            component: () => import('@/views/MedicoesView.vue'),
+            meta: { title: 'Medições de água' },
+          },
+          {
             path: '/funcionarios',
             name: 'funcionarios',
             component: () => import('@/views/EmployeesView.vue'),

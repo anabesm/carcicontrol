@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { House, UsersRound, Waves } from '@lucide/vue'
+import { House, UsersRound, Waves, Droplets } from '@lucide/vue'
 
 export interface Section {
   path: string
@@ -15,6 +15,12 @@ export const sections: Section[] = [
     name: 'Viveiros',
     title: 'Viveiros e ciclos',
     icon: Waves,
+  },
+  {
+    path: '/medicoes',
+    name: 'Medições',
+    title: 'Medições de água',
+    icon: Droplets,
   },
   {
     path: '/funcionarios',
