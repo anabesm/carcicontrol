@@ -1,70 +1,47 @@
-# frontend
+# Frontend do CarciControl
 
-This template should help get you started developing with Vue 3 in Vite.
+Interface em Vue, TypeScript e Vite. Requer Node.js 22.18+ ou 24.12+; recomendado Node.js 24 LTS.
 
-## Recommended IDE Setup
+Execute nesta pasta:
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+```powershell
+npm ci
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+Abra `http://127.0.0.1:5173`. Inicie também o backend na porta `3000` para usar a
+verificação de conexão. Os demais recursos de negócio serão integrados nas
+próximas etapas.
 
-```sh
+## Configuração da API
+
+As chamadas do navegador usam `/api`. O proxy do Vite encaminha para
+`http://127.0.0.1:3000`, removendo o prefixo `/api`. Isso permite usar os cookies de
+sessão pela mesma origem, sem armazenar tokens no navegador.
+
+Os valores padrão funcionam sem `.env`. Para alterá-los, copie `.env.example`
+para `.env` e configure `VITE_API_BASE_URL` e `API_PROXY_TARGET`. Em produção,
+configure o servidor web para encaminhar `/api` ao backend e as demais rotas ao
+`index.html` da aplicação.
+
+## Estrutura
+
+- `src/assets/main.css`: cores, espaçamentos, tipografia e estilos responsivos.
+- `src/components/ui`: botões, campos, avisos, carregamento e estados vazios.
+- `src/components/layout`: marca, cabeçalho e navegação.
+- `src/config/navigation.ts`: seções e atalhos da aplicação.
+- `src/services/api.ts`: cliente JSON com cookies e tratamento de erros HTTP.
+- `src/views` e `src/router`: páginas e rotas para as próximas funcionalidades.
+
+## Verificação e compilação
+
+```powershell
+npm run type-check
+npm run test:unit -- --run
 npm run build
+npm run preview
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
-
-```sh
-npm run test:e2e:dev
-```
-
-This runs the end-to-end tests against the Vite development server.
-It is much faster than the production build.
-
-But it's still recommended to test the production build with `test:e2e` before deploying (e.g. in CI environments):
-
-```sh
-npm run build
-npm run test:e2e
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+A prévia compilada abre na porta `4173` e também dispõe do proxy local da API.
+Os testes do cliente verificam envio de cookies, erros de sessão, resposta vazia
+de logout e indisponibilidade da conexão.
