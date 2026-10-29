@@ -90,9 +90,11 @@ async function clearSearch() {
       </BaseEmptyState>
 
       <BaseAlert title="Estamos preparando as próximas etapas" class="overview-notice">
-        <template v-if="auth.isAdmin">A gestão de funcionários já está disponível. </template>Os
-        registros de cultivo e o acompanhamento dos viveiros serão disponibilizados nas próximas
-        entregas.
+        Os viveiros, o ciclo ativo e o histórico já podem ser consultados.
+        <template v-if="auth.isAdmin"
+          >Você também pode cadastrar viveiros, abrir ciclos e gerenciar funcionários.
+        </template>
+        Medições e demais registros serão disponibilizados nas próximas entregas.
       </BaseAlert>
     </section>
 

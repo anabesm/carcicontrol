@@ -20,8 +20,7 @@ export const sections: Section[] = [
     icon: Waves,
     description: 'Organize os viveiros e acompanhe cada ciclo de cultivo.',
     action: 'Novo viveiro',
-    preview:
-      'O cadastro de viveiros, a abertura de ciclos e o histórico do cultivo estarão disponíveis aqui.',
+    preview: 'Consulte os viveiros, o ciclo ativo e o histórico do cultivo.',
   },
   {
     path: '/medicoes',

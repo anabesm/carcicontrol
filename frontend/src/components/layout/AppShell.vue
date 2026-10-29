@@ -14,6 +14,8 @@ const auth = useAuthStore()
 const { visibleNavigation: navigation } = useNavigation()
 const signingOut = ref(false)
 const logoutError = ref('')
+const isSectionActive = (path: string) =>
+  path === '/' ? route.path === '/' : route.path === path || route.path.startsWith(`${path}/`)
 const initials = computed(() =>
   auth.usuario?.nome
     .trim()
@@ -51,6 +53,7 @@ async function logout() {
           :key="item.path"
           :to="item.path"
           class="nav-item"
+          :class="{ 'is-active': isSectionActive(item.path) }"
           exact-active-class="is-active"
         >
           <component :is="item.icon" :size="20" :stroke-width="1.8" />
@@ -122,6 +125,7 @@ async function logout() {
         :key="item.path"
         :to="item.path"
         class="mobile-nav-item"
+        :class="{ 'is-active': isSectionActive(item.path) }"
         exact-active-class="is-active"
         :aria-label="item.name"
       >

@@ -13,9 +13,17 @@ Abra `http://127.0.0.1:5173`. Inicie também o backend na porta `3000`.
 Use a conta preparada pelo seed explícito de demonstração do backend.
 As credenciais são as configuradas no `.env` local do backend; não há cadastro público.
 
-O administrador pode consultar e cadastrar funcionários. O funcionário pode entrar
-e navegar pelas áreas operacionais disponíveis. Os demais módulos serão integrados
-nas próximas etapas.
+O administrador pode consultar e cadastrar funcionários e viveiros, além de abrir
+ciclos de cultivo. O funcionário pode consultar os viveiros, o ciclo ativo e o
+histórico. Os demais módulos serão integrados nas próximas etapas.
+
+Em Viveiros, use Novo viveiro para cadastrar uma área. O cadastro usa m² para a
+área e metros para a profundidade média, aceitando ponto ou vírgula como separador
+decimal. Nos detalhes de um viveiro disponível, o administrador pode abrir um
+ciclo com data de início e quantidade de larvas; fornecedor e previsão de despesca
+são opcionais. As datas de calendário são exibidas sem deslocamento de fuso.
+Um conflito de abertura atualiza a disponibilidade consultando a API novamente.
+Os registros e a ocupação são carregados do backend ao abrir ou recarregar a página.
 
 ## Configuração da API
 
@@ -54,4 +62,5 @@ npm run preview
 
 A prévia compilada abre na porta `4173` e também dispõe do proxy local da API.
 Os testes verificam cookies, erros da API, restauração e encerramento da sessão,
-restrições das rotas e retornos seguros após o login.
+restrições das rotas, retornos seguros após o login, cadastro de viveiros e
+conflitos na abertura de ciclos.

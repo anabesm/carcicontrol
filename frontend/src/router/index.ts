@@ -36,7 +36,7 @@ export function createAppRouter(
         children: [
           { path: '/', name: 'inicio', component: HomeView, meta: { title: 'Visão geral' } },
           ...sections
-            .filter((section) => section.path !== '/funcionarios')
+            .filter((section) => !['/funcionarios', '/viveiros'].includes(section.path))
             .map((section) => ({
               path: section.path,
               name: section.path.slice(1),
@@ -44,6 +44,32 @@ export function createAppRouter(
               props: { section },
               meta: { title: section.title, adminOnly: section.adminOnly ?? false },
             })),
+          {
+            path: '/viveiros',
+            name: 'viveiros',
+            component: () => import('@/views/ViveirosView.vue'),
+            meta: { title: 'Viveiros e ciclos' },
+          },
+          {
+            path: '/viveiros/novo',
+            name: 'novo-viveiro',
+            component: () => import('@/views/NewViveiroView.vue'),
+            meta: { title: 'Novo viveiro', adminOnly: true },
+          },
+          {
+            path: '/viveiros/:id',
+            name: 'detalhes-viveiro',
+            props: true,
+            component: () => import('@/views/ViveiroDetailsView.vue'),
+            meta: { title: 'Detalhes do viveiro' },
+          },
+          {
+            path: '/viveiros/:id/ciclos/novo',
+            name: 'novo-ciclo',
+            props: true,
+            component: () => import('@/views/NewCycleView.vue'),
+            meta: { title: 'Abrir ciclo', adminOnly: true },
+          },
           {
             path: '/funcionarios',
             name: 'funcionarios',

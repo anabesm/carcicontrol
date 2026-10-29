@@ -47,7 +47,7 @@ describe('proteção das rotas', () => {
     expect(router.currentRoute.value.path).toBe('/funcionarios/novo')
   })
 
-  it.each(['/funcionarios', '/funcionarios/novo'])(
+  it.each(['/funcionarios', '/funcionarios/novo', '/viveiros/novo', '/viveiros/1/ciclos/novo'])(
     'bloqueia o funcionário em %s, inclusive por URL direta',
     async (path) => {
       vi.mocked(authApi.me).mockResolvedValue({ usuario: { ...admin, perfil: 'FUNCIONARIO' } })
@@ -57,13 +57,26 @@ describe('proteção das rotas', () => {
     },
   )
 
-  it('permite a navegação operacional do funcionário após restaurar a sessão', async () => {
-    vi.mocked(authApi.me).mockResolvedValue({ usuario: { ...admin, perfil: 'FUNCIONARIO' } })
-    const router = newRouter()
-    await router.push('/viveiros')
-    expect(router.currentRoute.value.path).toBe('/viveiros')
-    expect(authApi.me).toHaveBeenCalled()
-  })
+  it.each(['/viveiros', '/viveiros/1'])(
+    'permite ao funcionário consultar %s após restaurar a sessão',
+    async (path) => {
+      vi.mocked(authApi.me).mockResolvedValue({ usuario: { ...admin, perfil: 'FUNCIONARIO' } })
+      const router = newRouter()
+      await router.push(path)
+      expect(router.currentRoute.value.path).toBe(path)
+      expect(authApi.me).toHaveBeenCalled()
+    },
+  )
+
+  it.each(['/viveiros/novo', '/viveiros/1/ciclos/novo'])(
+    'permite a operação administrativa %s',
+    async (path) => {
+      vi.mocked(authApi.me).mockResolvedValue({ usuario: admin })
+      const router = newRouter()
+      await router.push(path)
+      expect(router.currentRoute.value.path).toBe(path)
+    },
+  )
 
   it('mostra opção de tentar novamente se a verificação falhar por conexão', async () => {
     vi.mocked(authApi.me).mockRejectedValue(new ApiError(0, 'Sem conexão.'))

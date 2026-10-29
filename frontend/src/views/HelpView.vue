@@ -43,7 +43,12 @@ const auth = useAuthStore()
         <template v-if="auth.isAdmin"
           >Em Funcionários, consulte e cadastre os acessos da equipe.</template
         >
-        Os registros de cultivo serão disponibilizados nas próximas etapas.</BaseAlert
+        Em Viveiros, consulte os dados, o ciclo ativo e o histórico de cada área.
+        <template v-if="auth.isAdmin"
+          >Use Novo viveiro para cadastrar uma área e Abrir ciclo nos detalhes de um viveiro
+          disponível para registrar o povoamento.</template
+        >
+        Medições e demais registros serão disponibilizados nas próximas etapas.</BaseAlert
       >
     </section>
   </div>

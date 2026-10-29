@@ -5,7 +5,7 @@ const props = withDefaults(
   defineProps<{
     id?: string
     label: string
-    type?: 'text' | 'email' | 'password' | 'search' | 'number' | 'tel'
+    type?: 'text' | 'email' | 'password' | 'search' | 'number' | 'tel' | 'date'
     placeholder?: string
     hint?: string
     error?: string
@@ -16,6 +16,8 @@ const props = withDefaults(
     name?: string
     maxlength?: number
     minlength?: number
+    min?: string
+    max?: string
     inputmode?: 'text' | 'email' | 'tel' | 'numeric' | 'decimal' | 'search'
   }>(),
   { type: 'text', required: false, disabled: false, hideLabel: false },
@@ -58,6 +60,8 @@ defineExpose({ focus: () => input.value?.focus() })
         :name="name"
         :maxlength="maxlength"
         :minlength="minlength"
+        :min="min"
+        :max="max"
         :inputmode="inputmode"
         :aria-invalid="error ? 'true' : undefined"
         :aria-describedby="describedBy"
