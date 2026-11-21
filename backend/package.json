@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit",
     "test": "tsc -p tsconfig.json && node --test tests/health.test.cjs tests/password.test.cjs tests/viveiros.validation.test.cjs tests/medicoes.validation.test.cjs",
-    "test:integration": "tsc -p tsconfig.json && node --test --test-concurrency=1 tests/auth.integration.cjs tests/viveiros.integration.cjs tests/medicoes.integration.cjs",
+    "test:integration": "tsc -p tsconfig.json && node --test --test-concurrency=1 tests/auth.integration.cjs tests/viveiros.integration.cjs tests/medicoes.integration.cjs tests/cultivo.integration.cjs",
     "postinstall": "prisma generate",
     "db:start": "docker compose up -d --wait db",
     "db:stop": "docker compose stop db",

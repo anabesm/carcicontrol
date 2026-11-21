@@ -80,6 +80,16 @@ export function date(value: unknown, label = "Data", future = false) {
   const result = new Date(
     value.length === 10 ? `${value}T00:00:00.000Z` : value,
   );
+  const calendar = new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+  if (
+    !Number.isFinite(calendar.getTime()) ||
+    calendar.toISOString().slice(0, 10) !== value.slice(0, 10) ||
+    (value.length > 10 &&
+      (Number(value.slice(11, 13)) > 23 ||
+        Number(value.slice(14, 16)) > 59 ||
+        Number(value.slice(17, 19)) > 59))
+  )
+    throw new HttpError(400, `${label} inválida.`);
   if (
     !Number.isFinite(result.getTime()) ||
     value.startsWith("0000") ||
