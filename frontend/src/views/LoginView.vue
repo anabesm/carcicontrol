@@ -101,5 +101,8 @@ async function submit() {
         >{{ submitting ? 'Entrando…' : 'Entrar' }}<ArrowRight v-if="!submitting" :size="17"
       /></BaseButton>
     </form>
+    <div class="inline-actions">
+      <RouterLink to="/recuperar-senha" class="text-link">Esqueci minha senha</RouterLink>
+    </div>
   </AccessLayout>
 </template>

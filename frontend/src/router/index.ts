@@ -17,6 +17,19 @@ export function createAppRouter(
     history,
     routes: [
       {
+        path: '/recuperar-senha',
+        name: 'recuperar-senha',
+        component: () => import('@/views/PasswordRecoveryView.vue'),
+        meta: { public: true, title: 'Recuperar senha' },
+      },
+      {
+        path: '/redefinir-senha',
+        name: 'redefinir-senha',
+        props: { reset: true },
+        component: () => import('@/views/PasswordRecoveryView.vue'),
+        meta: { public: true, title: 'Definir nova senha' },
+      },
+      {
         path: '/login',
         name: 'login',
         component: () => import('@/views/LoginView.vue'),

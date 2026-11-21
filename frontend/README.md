@@ -83,3 +83,8 @@ banco separado terminado em `_test`. O comando inicia API de testes na porta
 3001 e frontend na porta 4173, usa contas temporárias, executa os cenários e
 encerra os serviços que iniciou. Não use essas portas em outro processo durante
 o teste. O banco principal e as contas existentes são preservados.
+
+O link Esqueci minha senha solicita recuperação por e-mail. Na demonstração,
+inicie `npm run mail:start` na pasta `backend` e consulte a mensagem em
+`http://127.0.0.1:8025`. O link recebido abre a definição de nova senha e deixa
+de funcionar após seu uso ou expiração.
