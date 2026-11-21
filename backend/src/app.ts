@@ -8,6 +8,7 @@ import { createUsuariosRouter } from "./usuarios/routes";
 import { createViveirosRouter } from "./viveiros/routes";
 import { createMedicoesRouter } from "./medicoes/routes";
 import { createEventosRouter } from "./eventos/routes";
+import { createDespesasRouter } from "./despesas/routes";
 
 export function createApp(
   checkDatabase: () => Promise<void>,
@@ -40,6 +41,7 @@ export function createApp(
     app.use("/viveiros", createViveirosRouter(auth.db, auth.session));
     app.use(createMedicoesRouter(auth.db, auth.session));
     app.use("/eventos", createEventosRouter(auth.db, auth.session));
+    app.use("/despesas", createDespesasRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {
