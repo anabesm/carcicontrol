@@ -10,6 +10,7 @@ import { createMedicoesRouter } from "./medicoes/routes";
 import { createEventosRouter } from "./eventos/routes";
 import { createDespesasRouter } from "./despesas/routes";
 import { createVendasRouter } from "./vendas/routes";
+import { createIndicadoresRouter } from "./indicadores/routes";
 
 export function createApp(
   checkDatabase: () => Promise<void>,
@@ -44,6 +45,7 @@ export function createApp(
     app.use("/eventos", createEventosRouter(auth.db, auth.session));
     app.use("/despesas", createDespesasRouter(auth.db, auth.session));
     app.use("/vendas", createVendasRouter(auth.db, auth.session));
+    app.use("/indicadores", createIndicadoresRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {
