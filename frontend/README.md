@@ -64,3 +64,22 @@ A prévia compilada abre na porta `4173` e também dispõe do proxy local da API
 Os testes verificam cookies, erros da API, restauração e encerramento da sessão,
 restrições das rotas, retornos seguros após o login, cadastro de viveiros e
 conflitos na abertura de ciclos.
+
+## Operações do cultivo
+
+Ocorrências permite consultar o histórico e, para administradores, registrar
+eventos. Despesas e Vendas são restritas ao administrador. O encerramento por
+venda ou perda fica nos detalhes do viveiro. A página inicial apresenta totais
+reais e a evolução de medições de um ciclo selecionado.
+
+Para executar a jornada completa no navegador:
+
+```powershell
+npm run test:e2e:full
+```
+
+Prepare o PostgreSQL e `backend/.env` com `TEST_DATABASE_URL` apontando para um
+banco separado terminado em `_test`. O comando inicia API de testes na porta
+3001 e frontend na porta 4173, usa contas temporárias, executa os cenários e
+encerra os serviços que iniciou. Não use essas portas em outro processo durante
+o teste. O banco principal e as contas existentes são preservados.

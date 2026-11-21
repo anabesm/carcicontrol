@@ -19,7 +19,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:seed:demo": "tsx src/seed-demo.ts",
-    "db:seed:medicoes": "tsx src/seed-medicoes-demo.ts"
+    "db:seed:medicoes": "tsx src/seed-medicoes-demo.ts",
+    "db:seed:cultivo": "tsx src/seed-cultivo-demo.ts"
   },
   "keywords": [],
   "author": "",

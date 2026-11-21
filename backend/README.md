@@ -72,13 +72,13 @@ do servidor e invalida o cookie anterior. O banco armazena apenas o hash do toke
 da sessão. O perfil e a situação do usuário são consultados no servidor a cada
 requisição autenticada.
 
-| Método | Rota | Acesso | Corpo JSON |
-| --- | --- | --- | --- |
-| POST | `/auth/login` | Público | `email`, `senha` |
-| GET | `/auth/me` | Autenticado | — |
-| POST | `/auth/logout` | Autenticado | — |
-| GET | `/usuarios` | Administrador | — |
-| POST | `/usuarios` | Administrador | `nome`, `email`, `senha`, `telefone` opcional |
+| Método | Rota           | Acesso        | Corpo JSON                                    |
+| ------ | -------------- | ------------- | --------------------------------------------- |
+| POST   | `/auth/login`  | Público       | `email`, `senha`                              |
+| GET    | `/auth/me`     | Autenticado   | —                                             |
+| POST   | `/auth/logout` | Autenticado   | —                                             |
+| GET    | `/usuarios`    | Administrador | —                                             |
+| POST   | `/usuarios`    | Administrador | `nome`, `email`, `senha`, `telefone` opcional |
 
 As respostas de login, consulta e cadastro usam `{ "usuario": ... }`; a listagem
 usa `{ "usuarios": [...] }` e inclui somente funcionários. Nenhuma resposta
@@ -132,12 +132,12 @@ confirmação e anomalias confirmadas, além de unidades, datas, permissões e h
 
 ## Viveiros e ciclos
 
-| Método | Rota | Acesso | Corpo JSON |
-| --- | --- | --- | --- |
-| GET | `/viveiros` | Administrador e funcionário | — |
-| GET | `/viveiros/:id` | Administrador e funcionário | — |
-| POST | `/viveiros` | Administrador | `identificador`, `area`, `profundidadeMedia`, `localizacao` opcional |
-| POST | `/viveiros/:id/ciclos` | Administrador | `dataInicio`, `qtdLarvasInicial`, `fornecedorLarvas` e `previsaoDespesca` opcionais |
+| Método | Rota                   | Acesso                      | Corpo JSON                                                                          |
+| ------ | ---------------------- | --------------------------- | ----------------------------------------------------------------------------------- |
+| GET    | `/viveiros`            | Administrador e funcionário | —                                                                                   |
+| GET    | `/viveiros/:id`        | Administrador e funcionário | —                                                                                   |
+| POST   | `/viveiros`            | Administrador               | `identificador`, `area`, `profundidadeMedia`, `localizacao` opcional                |
+| POST   | `/viveiros/:id/ciclos` | Administrador               | `dataInicio`, `qtdLarvasInicial`, `fornecedorLarvas` e `previsaoDespesca` opcionais |
 
 O cadastro do viveiro responde `201` com `{ "viveiro": ... }` e define a situação
 `DISPONIVEL` no servidor. Área e profundidade média devem ser números positivos;
@@ -184,12 +184,12 @@ inativação e encerramento de ciclos ficam para as próximas etapas.
 As rotas exigem uma sessão de administrador ou funcionário. Os dois perfis podem
 registrar e consultar medições e consultar alertas.
 
-| Método | Rota | Finalidade |
-| --- | --- | --- |
-| GET | `/parametros?cicloId=1` | Parâmetros ativos, unidades, limites aceitos e faixa ideal aplicável ao ciclo |
-| POST | `/medicoes` | Registrar uma medição de ciclo ativo |
-| GET | `/medicoes?cicloId=1` | Histórico de medições, inclusive de ciclos já finalizados |
-| GET | `/alertas?cicloId=1&status=PENDENTE` | Alertas com a medição, parâmetro, ciclo, viveiro e responsável |
+| Método | Rota                                 | Finalidade                                                                    |
+| ------ | ------------------------------------ | ----------------------------------------------------------------------------- |
+| GET    | `/parametros?cicloId=1`              | Parâmetros ativos, unidades, limites aceitos e faixa ideal aplicável ao ciclo |
+| POST   | `/medicoes`                          | Registrar uma medição de ciclo ativo                                          |
+| GET    | `/medicoes?cicloId=1`                | Histórico de medições, inclusive de ciclos já finalizados                     |
+| GET    | `/alertas?cicloId=1&status=PENDENTE` | Alertas com a medição, parâmetro, ciclo, viveiro e responsável                |
 
 O catálogo permite omitir `cicloId` para consultar as faixas globais. Uma faixa
 ativa específica do viveiro prevalece sobre a global. Configurações ausentes,
@@ -206,12 +206,12 @@ O seed usa o administrador ativo identificado por `DEMO_ADMIN_EMAIL`, cria apena
 parâmetros e faixas ausentes e preserva configurações existentes. Não cria leituras
 nem alertas e não é executado automaticamente na inicialização da API.
 
-| Código | Parâmetro | Unidade | Limites de entrada da demonstração | Faixa ideal de exemplo |
-| --- | --- | --- | --- | --- |
-| OD | Oxigênio dissolvido | mg/L | 0 a 30 | 5 a 7 |
-| TEMPERATURA | Temperatura | °C | -5 a 60 | 28 a 33 |
-| SALINIDADE | Salinidade | ppt | 0 a 100 | 15 a 35 |
-| PH | pH | pH (adimensional) | 0 a 14 | 7,5 a 8,5 |
+| Código      | Parâmetro           | Unidade           | Limites de entrada da demonstração | Faixa ideal de exemplo |
+| ----------- | ------------------- | ----------------- | ---------------------------------- | ---------------------- |
+| OD          | Oxigênio dissolvido | mg/L              | 0 a 30                             | 5 a 7                  |
+| TEMPERATURA | Temperatura         | °C                | -5 a 60                            | 28 a 33                |
+| SALINIDADE  | Salinidade          | ppt               | 0 a 100                            | 15 a 35                |
+| PH          | pH                  | pH (adimensional) | 0 a 14                             | 7,5 a 8,5              |
 
 Esses limites de entrada são operacionais para a demonstração. As faixas ideais
 usam exemplos do [guia de qualidade da água para cultivo de camarões da FAO](https://www.fao.org/fishery/docs/CDrom/bobp/cd1/Bobp/Publns/MISC/GUIDELINES.pdf).
@@ -302,3 +302,36 @@ npm run db:status
 
 Esse comando registra o histórico sem recriar as tabelas. Não use `migrate reset`,
 `db push --force-reset` nem remova o volume para configurar um banco existente.
+
+## Ocorrências, despesas e encerramento
+
+`GET /eventos` permite consulta pelos dois perfis. `POST /eventos` registra uma
+ocorrência pelo administrador com viveiro, ciclo opcional, tipo, descrição e
+data/hora. O responsável é obtido da sessão.
+
+Administradores utilizam `GET/POST /despesas`, `GET /despesas/:id` e `GET /vendas`.
+Despesas incluem categoria, descrição, quantidade, unidade e preço. Os totais são
+calculados no servidor. As consultas aceitam `viveiroId`, `cicloId`, `inicio`,
+`fim`, `limite` e `offset`.
+
+`POST /viveiros/:id/ciclos/:cicloId/encerramento` recebe `motivo` (`VENDA` ou
+`PERDA_TOTAL`) e `dataEncerramento`. Venda exige comprador, peso em kg e preço
+por kg. Perda exige justificativa. O ciclo e a liberação do viveiro são gravados
+na mesma transação, preservando medições e histórico. Uma segunda solicitação
+de encerramento retorna conflito.
+
+`GET /indicadores/resumo` retorna a situação atual do cultivo. Os dados
+financeiros são retornados somente ao administrador e usam os filtros de período.
+`GET /indicadores/evolucao?parametroId=1&cicloId=1` retorna até 500 leituras e
+informa quando o período precisa ser reduzido. Saldo registrado não representa
+lucro líquido.
+
+## Dados fictícios e teste completo
+
+Após preparar o administrador e os parâmetros, `npm run db:seed:cultivo` cria
+três viveiros `DEMO` com exemplos de cultivo ativo, venda e perda. Não altera
+registros existentes e não executa automaticamente ao iniciar a API.
+
+`npm run test:integration` usa exclusivamente `TEST_DATABASE_URL`, cujo banco
+deve ser diferente do principal e terminar em `_test`. Os testes criam e removem
+apenas seus próprios registros.
