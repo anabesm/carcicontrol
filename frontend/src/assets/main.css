@@ -2017,6 +2017,24 @@ h1 {
   display: grid;
   gap: 16px;
 }
+.confirm-dialog {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+  width: min(560px, calc(100vw - 32px));
+  color: var(--text);
+}
+.confirm-dialog::backdrop {
+  background: rgb(10 20 35 / 45%);
+}
+.confirmation-content {
+  margin: 20px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.confirmation-content p + p {
+  margin-top: 12px;
+}
 .expense-item legend {
   padding: 0 6px;
   font-weight: 600;

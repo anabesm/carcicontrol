@@ -89,6 +89,11 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
           </dl>
           <div class="active-cycle-actions">
             <BaseButton
+              v-if="auth.isAdmin"
+              :to="`/viveiros/${viveiro.id}/ciclos/${viveiro.cicloAtivo.id}/encerrar`"
+              >Encerrar ciclo</BaseButton
+            >
+            <BaseButton
               :to="`/medicoes?viveiroId=${viveiro.id}&cicloId=${viveiro.cicloAtivo.id}`"
               variant="secondary"
               >Medições do ciclo</BaseButton
@@ -151,6 +156,16 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
                     ? 'Em andamento'
                     : 'Não informado'
               }}
+              <details v-if="cycle.motivoEncerramento">
+                <summary>
+                  {{ cycle.motivoEncerramento === 'VENDA' ? 'Venda / despesca' : 'Perda total' }}
+                </summary>
+                <p>Peso final: {{ cycle.pesoFinal }} kg</p>
+                <p v-if="cycle.quantidadeFinal != null">
+                  Quantidade final: {{ cycle.quantidadeFinal }}
+                </p>
+                <p>{{ cycle.observacaoEncerramento }}</p>
+              </details>
             </td>
             <td data-label="Larvas iniciais">{{ formatMeasure(cycle.qtdLarvasInicial) }}</td>
             <td>

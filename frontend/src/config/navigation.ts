@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { House, UsersRound, Waves, Droplets, ClipboardList, Wallet } from '@lucide/vue'
+import { House, UsersRound, Waves, Droplets, ClipboardList, Wallet, ShoppingBag } from '@lucide/vue'
 
 export interface Section {
   path: string
@@ -12,6 +12,7 @@ export interface Section {
 export const sections: Section[] = [
   { path: '/eventos', name: 'Ocorrências', title: 'Ocorrências', icon: ClipboardList },
   { path: '/despesas', name: 'Despesas', title: 'Despesas', icon: Wallet, adminOnly: true },
+  { path: '/vendas', name: 'Vendas', title: 'Vendas', icon: ShoppingBag, adminOnly: true },
   {
     path: '/viveiros',
     name: 'Viveiros',

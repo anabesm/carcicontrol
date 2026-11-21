@@ -11,6 +11,9 @@ export interface CicloCultivo {
   previsaoDespesca: string | null
   dataEncerramento: string | null
   pesoFinal: number | null
+  motivoEncerramento?: 'VENDA' | 'PERDA_TOTAL' | null
+  observacaoEncerramento?: string | null
+  quantidadeFinal?: number | null
   criadoPor: number
   criadoEm: string
   atualizadoEm: string

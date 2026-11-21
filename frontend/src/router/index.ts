@@ -66,6 +66,19 @@ export function createAppRouter(
             meta: { title: 'Medições de água' },
           },
           {
+            path: '/viveiros/:id/ciclos/:cicloId/encerrar',
+            name: 'encerrar-ciclo',
+            props: true,
+            component: () => import('@/views/CloseCycleView.vue'),
+            meta: { title: 'Encerrar ciclo', adminOnly: true },
+          },
+          {
+            path: '/vendas',
+            name: 'vendas',
+            component: () => import('@/views/VendasView.vue'),
+            meta: { title: 'Vendas', adminOnly: true },
+          },
+          {
             path: '/eventos',
             name: 'eventos',
             component: () => import('@/views/EventosView.vue'),
