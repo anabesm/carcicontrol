@@ -20,6 +20,7 @@ import {
 import { openCycle } from "./service";
 import { closeCycle, validateClosing } from "./encerramento";
 import { id as recordId } from "../lib/input";
+import { editPond } from "./management";
 
 export function createViveirosRouter(
   db: PrismaClient,
@@ -119,5 +120,10 @@ export function createViveirosRouter(
     },
   );
 
+  router.patch("/:id", requireAdministrator, async (request, response) =>
+    response.json({
+      viveiro: await editPond(db, recordId(request.params.id), request.body),
+    }),
+  );
   return router;
 }

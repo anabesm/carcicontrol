@@ -661,6 +661,12 @@ test("recuperação não enumera contas, guarda apenas hash e o link só funcion
     method: "POST",
     body: { senha: password },
   });
+  const refreshed = await request("/auth/login", {
+    method: "POST",
+    cookie: null,
+    body: { email: employee.email, senha: password },
+  });
+  employeeCookie = refreshed.headers.get("set-cookie").split(";")[0];
 });
 test("links expirados e tokens inválidos não redefinem a senha", async () => {
   await request("/auth/recuperar-senha", {
@@ -696,5 +702,92 @@ test("links expirados e tokens inválidos não redefinem a senha", async () => {
       })
     ).status,
     400,
+  );
+});
+
+test("manutenção de viveiros mantém histórico e bloqueia inativação durante o ciclo", async () => {
+  const p = await pond();
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        cookie: employeeCookie,
+        body: { area: 5000 },
+      })
+    ).status,
+    403,
+  );
+  const edited = await request(`/viveiros/${p.id}`, {
+    method: "PATCH",
+    body: { area: 9000, localizacao: "Setor atualizado" },
+  });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.viveiro.area, 9000);
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        body: { status: "INATIVO" },
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        body: { status: "OCUPADO" },
+      })
+    ).status,
+    400,
+  );
+  const other = await pond();
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        body: { identificador: other.identificador.toUpperCase() },
+      })
+    ).status,
+    409,
+  );
+  await request(`/viveiros/${p.id}/ciclos/${p.cycle.id}/encerramento`, {
+    method: "POST",
+    body: {
+      motivo: "PERDA_TOTAL",
+      dataEncerramento: closingTime,
+      justificativa: "Teste de manutenção",
+    },
+  });
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        body: { status: "INATIVO" },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/viveiros/${p.id}`)).body.viveiro.totalCiclos,
+    1,
+  );
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}/ciclos`, {
+        method: "POST",
+        body: { dataInicio: yesterday, qtdLarvasInicial: 1000 },
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request(`/viveiros/${p.id}`, {
+        method: "PATCH",
+        body: { status: "DISPONIVEL" },
+      })
+    ).status,
+    200,
   );
 });
