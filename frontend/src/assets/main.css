@@ -2010,6 +2010,34 @@ h1 {
 .record-panel .form-stack {
   max-width: 960px;
 }
+.expense-item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+.expense-item legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.expense-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.expense-total {
+  padding: 16px 0;
+}
+.expense-breakdown {
+  padding-left: 20px;
+  margin: 12px 0;
+}
+@media (max-width: 767px) {
+  .expense-values {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 767px) {
   .record-panel {
     padding: 20px;

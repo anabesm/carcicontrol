@@ -72,6 +72,12 @@ export function createAppRouter(
             meta: { title: 'Ocorrências' },
           },
           {
+            path: '/despesas',
+            name: 'despesas',
+            component: () => import('@/views/DespesasView.vue'),
+            meta: { title: 'Despesas', adminOnly: true },
+          },
+          {
             path: '/funcionarios',
             name: 'funcionarios',
             component: () => import('@/views/EmployeesView.vue'),

@@ -4,10 +4,10 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import { viveirosApi } from '@/services/viveiros'
 import type { Viveiro, CicloCultivo } from '@/types/viveiro'
-const props = withDefaults(defineProps<{ required?: boolean; disabled?: boolean }>(), {
-  required: false,
-  disabled: false,
-})
+const props = withDefaults(
+  defineProps<{ required?: boolean; disabled?: boolean; form?: boolean }>(),
+  { required: false, disabled: false, form: false },
+)
 const viveiroId = defineModel<string>('viveiroId', { default: '' })
 const cicloId = defineModel<string>('cicloId', { default: '' })
 const ponds = ref<Viveiro[]>([])
@@ -54,7 +54,9 @@ onMounted(async () => {
       :required="props.required"
       :disabled="disabled"
     >
-      <option value="">{{ required ? 'Selecione o viveiro' : 'Todos os viveiros' }}</option>
+      <option value="">
+        {{ required ? 'Selecione o viveiro' : form ? 'Despesa geral' : 'Todos os viveiros' }}
+      </option>
       <option v-for="pond in ponds" :key="pond.id" :value="String(pond.id)">
         {{ pond.identificador }}
       </option>
@@ -65,7 +67,15 @@ onMounted(async () => {
       name="cicloId"
       :disabled="disabled || !viveiroId || loading"
     >
-      <option value="">{{ viveiroId ? 'Sem filtro de ciclo' : 'Selecione um viveiro' }}</option>
+      <option value="">
+        {{
+          viveiroId
+            ? form || required
+              ? 'Sem vínculo com ciclo'
+              : 'Todos os ciclos'
+            : 'Selecione um viveiro'
+        }}
+      </option>
       <option v-for="cycle in cycles" :key="cycle.id" :value="String(cycle.id)">
         #{{ cycle.id }} — {{ cycle.status === 'ATIVO' ? 'Ativo' : 'Encerrado' }}
       </option>
