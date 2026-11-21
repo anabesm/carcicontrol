@@ -75,6 +75,19 @@ model Usuario {
   medicoesRegistadas Medicao[]       @relation("RegistadoPor")
   alertasResolvidos  Alerta[]        @relation("ResolvidoPor")
   sessoes            SessaoUsuario[]
+  recuperacoes       RecuperacaoSenha[]
+}
+
+model RecuperacaoSenha {
+  tokenHash String @id @db.Char(64)
+  usuarioId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEm DateTime
+  usadoEm DateTime?
+  criadoEm DateTime @default(now())
+
+  @@index([usuarioId])
+  @@index([expiraEm])
 }
 
 model SessaoUsuario {

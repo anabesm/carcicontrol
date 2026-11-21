@@ -11,12 +11,14 @@ import { createEventosRouter } from "./eventos/routes";
 import { createDespesasRouter } from "./despesas/routes";
 import { createVendasRouter } from "./vendas/routes";
 import { createIndicadoresRouter } from "./indicadores/routes";
+import type { RecoveryOptions } from "./auth/recovery";
 
 export function createApp(
   checkDatabase: () => Promise<void>,
   auth?: {
     db: PrismaClient;
     session: SessionOptions;
+    recovery?: RecoveryOptions;
   },
 ) {
   const app = express();
@@ -38,7 +40,7 @@ export function createApp(
   app.use(express.json({ limit: "16kb" }));
 
   if (auth) {
-    app.use("/auth", createAuthRouter(auth.db, auth.session));
+    app.use("/auth", createAuthRouter(auth.db, auth.session, auth.recovery));
     app.use("/usuarios", createUsuariosRouter(auth.db, auth.session));
     app.use("/viveiros", createViveirosRouter(auth.db, auth.session));
     app.use(createMedicoesRouter(auth.db, auth.session));

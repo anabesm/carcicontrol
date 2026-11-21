@@ -8,11 +8,30 @@ import { requireAuthentication } from "./middleware";
 import { hashPassword, verifyPassword } from "./password";
 import { cookieOptions, createSession, sessionCookieName } from "./session";
 import type { SessionOptions } from "./session";
+import {
+  completeRecovery,
+  requestRecovery,
+  recoveryResponse,
+  type RecoveryOptions,
+} from "./recovery";
 
-export function createAuthRouter(db: PrismaClient, options: SessionOptions) {
+export function createAuthRouter(
+  db: PrismaClient,
+  options: SessionOptions,
+  recovery?: RecoveryOptions,
+) {
   const router = Router();
   const authenticate = requireAuthentication(db, options);
   let dummyHash: Promise<string> | undefined;
+  router.post("/recuperar-senha", async (request, response) => {
+    await requestRecovery(db, request.body, request.ip ?? "local", recovery);
+    response.status(202).json(recoveryResponse);
+  });
+  router.post("/redefinir-senha", async (request, response) => {
+    await completeRecovery(db, request.body);
+    response.clearCookie(sessionCookieName, cookieOptions(options));
+    response.status(204).end();
+  });
 
   router.post("/login", async (request, response) => {
     const { email, senha } = validateLogin(request.body);

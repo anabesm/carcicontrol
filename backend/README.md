@@ -335,3 +335,16 @@ registros existentes e não executa automaticamente ao iniciar a API.
 `npm run test:integration` usa exclusivamente `TEST_DATABASE_URL`, cujo banco
 deve ser diferente do principal e terminar em `_test`. Os testes criam e removem
 apenas seus próprios registros.
+
+## Recuperação de senha e e-mail local
+
+Execute `npm run mail:start` para iniciar a caixa local Mailpit. As mensagens de
+demonstração ficam em `http://127.0.0.1:8025` e não saem para a internet.
+`POST /auth/recuperar-senha` recebe um e-mail e responde genericamente, inclusive
+para endereços inexistentes. O link expira em 30 minutos, é de uso único e sua
+conclusão encerra todas as sessões anteriores.
+
+Para um serviço de e-mail real, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`,
+`SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` e `PUBLIC_APP_URL` no ambiente. Servidores
+externos exigem TLS. Nunca publique credenciais ou use a caixa local em produção.
+O transporte utiliza [SMTP com Nodemailer](https://nodemailer.com/smtp.html).

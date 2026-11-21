@@ -67,8 +67,10 @@ export async function editEmployee(
       if (
         data.status !== undefined ||
         (data.email !== undefined && data.email !== existing.email)
-      )
+      ) {
         await tx.sessaoUsuario.deleteMany({ where: { usuarioId: id } });
+        await tx.recuperacaoSenha.deleteMany({ where: { usuarioId: id } });
+      }
       return usuario;
     });
   } catch (error) {
@@ -102,5 +104,6 @@ export async function resetEmployeePassword(
     if (!existing) throw new HttpError(404, "Funcionário não encontrado.");
     await tx.usuario.update({ where: { id }, data: { senha } });
     await tx.sessaoUsuario.deleteMany({ where: { usuarioId: id } });
+    await tx.recuperacaoSenha.deleteMany({ where: { usuarioId: id } });
   });
 }

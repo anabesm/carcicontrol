@@ -22,6 +22,7 @@ const db = new PrismaClient({ datasourceUrl: testUrl });
 const prefix = `cultivo-${randomUUID()}`;
 const password = `Teste-${randomUUID()}`;
 let server, base, admin, employee, adminCookie, employeeCookie, parameter;
+const recoveryMessages = [];
 const ids = [];
 const paramIds = [],
   rangeIds = [];
@@ -134,7 +135,16 @@ before(async () => {
     async () => {
       await db.$queryRaw`SELECT 1`;
     },
-    { db, session: { ttlMs: 3600000, secure: false } },
+    {
+      db,
+      session: { ttlMs: 3600000, secure: false },
+      recovery: {
+        appUrl: "http://127.0.0.1:5173",
+        send: async (message) => {
+          recoveryMessages.push(message);
+        },
+      },
+    },
   ).listen(0, "127.0.0.1");
   await once(server, "listening");
   base = `http://127.0.0.1:${server.address().port}`;
@@ -593,4 +603,98 @@ test("administrador redefine credenciais sem expor hash e encerra sessões anter
     body: { email: employee.email, senha: password },
   });
   employeeCookie = login.headers.get("set-cookie").split(";")[0];
+});
+
+test("recuperação não enumera contas, guarda apenas hash e o link só funciona uma vez", async () => {
+  const known = await request("/auth/recuperar-senha", {
+    method: "POST",
+    cookie: null,
+    body: { email: employee.email },
+  });
+  const unknown = await request("/auth/recuperar-senha", {
+    method: "POST",
+    cookie: null,
+    body: { email: `${prefix}-missing@example.test` },
+  });
+  assert.equal(known.status, 202);
+  assert.equal(unknown.status, 202);
+  assert.deepEqual(known.body, unknown.body);
+  assert.equal("token" in known.body, false);
+  for (let i = 0; i < 20 && !recoveryMessages.length; i++)
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(recoveryMessages.length, 1);
+  const token = new URLSearchParams(
+    new URL(recoveryMessages[0].url).hash.slice(1),
+  ).get("token");
+  const stored = await db.recuperacaoSenha.findFirst({
+    where: { usuarioId: employee.id },
+  });
+  assert.notEqual(stored.tokenHash, token);
+  assert.equal(stored.tokenHash.length, 64);
+  const senha = `Recuperada-${randomUUID()}`;
+  const results = await Promise.all(
+    [1, 2].map(() =>
+      request("/auth/redefinir-senha", {
+        method: "POST",
+        cookie: null,
+        body: { token, senha },
+      }),
+    ),
+  );
+  assert.equal(results.filter((row) => row.status === 204).length, 1);
+  assert.equal(results.filter((row) => row.status === 400).length, 1);
+  assert.equal(
+    (await request("/auth/me", { cookie: employeeCookie })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request("/auth/login", {
+        method: "POST",
+        cookie: null,
+        body: { email: employee.email, senha },
+      })
+    ).status,
+    200,
+  );
+  await request(`/usuarios/${employee.id}/senha`, {
+    method: "POST",
+    body: { senha: password },
+  });
+});
+test("links expirados e tokens inválidos não redefinem a senha", async () => {
+  await request("/auth/recuperar-senha", {
+    method: "POST",
+    cookie: null,
+    body: { email: employee.email },
+  });
+  for (let i = 0; i < 20 && recoveryMessages.length < 2; i++)
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  const token = new URLSearchParams(
+    new URL(recoveryMessages[1].url).hash.slice(1),
+  ).get("token");
+  await db.recuperacaoSenha.updateMany({
+    where: { usuarioId: employee.id },
+    data: { expiraEm: new Date(Date.now() - 1000) },
+  });
+  assert.equal(
+    (
+      await request("/auth/redefinir-senha", {
+        method: "POST",
+        cookie: null,
+        body: { token, senha: password },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/auth/redefinir-senha", {
+        method: "POST",
+        cookie: null,
+        body: { token: "invalido", senha: password },
+      })
+    ).status,
+    400,
+  );
 });
