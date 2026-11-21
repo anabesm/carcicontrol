@@ -1,92 +1,149 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
-import { ArrowRight, ArrowUpRight, Search } from '@lucide/vue'
-import { useNavigation } from '@/composables/useNavigation'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { indicadoresApi, type Resumo, type Evolucao } from '@/services/indicadores'
+import { apiRequest } from '@/services/api'
+import { useResource } from '@/composables/useResource'
 import { useAuthStore } from '@/stores/auth'
-import BaseButton from '@/components/ui/BaseButton.vue'
+import { currency, queryString } from '@/utils/records'
+import type { Parametro } from '@/types/medicao'
+import CultivoFilter from '@/components/records/CultivoFilter.vue'
+import MeasurementChart from '@/components/medicoes/MeasurementChart.vue'
 import BaseField from '@/components/ui/BaseField.vue'
-import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
-import ConnectionStatus from '@/components/system/ConnectionStatus.vue'
-
-const search = ref('')
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseLoading from '@/components/ui/BaseLoading.vue'
+import BaseAlert from '@/components/ui/BaseAlert.vue'
 const auth = useAuthStore()
-const { visibleSections: sections } = useNavigation()
-const searchField = ref<InstanceType<typeof BaseField>>()
-const normalize = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-const filteredSections = computed(() =>
-  sections.value.filter((section) =>
-    normalize(`${section.title} ${section.name}`).includes(normalize(search.value.trim())),
-  ),
+const filter = reactive({ viveiroId: '', cicloId: '', inicio: '', fim: '' })
+const parameters = ref<Parametro[]>([])
+const parametroId = ref('')
+const catalogError = ref('')
+const summary = useResource(
+  () => indicadoresApi.summary(queryString(filter)),
+  null as Resumo | null,
 )
-
-async function clearSearch() {
-  search.value = ''
-  await nextTick()
-  searchField.value?.focus()
+const evolution = useResource(
+  () => indicadoresApi.evolution(queryString({ ...filter, parametroId: parametroId.value })),
+  null as Evolucao | null,
+)
+async function refresh() {
+  await summary.load()
+  if (filter.cicloId && parametroId.value) await evolution.load()
 }
+watch([() => filter.cicloId, parametroId], () => {
+  evolution.data.value = null
+  if (filter.cicloId && parametroId.value) void evolution.load()
+})
+onMounted(async () => {
+  void summary.load()
+  try {
+    parameters.value = (await apiRequest<{ parametros: Parametro[] }>('/parametros')).parametros
+    parametroId.value = String(parameters.value[0]?.id ?? '')
+  } catch (cause) {
+    catalogError.value =
+      cause instanceof Error ? cause.message : 'Não foi possível carregar os parâmetros.'
+  }
+})
 </script>
-
 <template>
   <div class="page-intro">
-    <div>
-      <h1>Visão geral</h1>
-    </div>
-    <span class="preview-label"
-      ><span aria-hidden="true"></span>{{ auth.isAdmin ? 'Administrador' : 'Funcionário' }}</span
+    <h1>Visão geral</h1>
+    <BaseButton variant="secondary" :disabled="summary.loading.value" @click="refresh"
+      >Atualizar</BaseButton
     >
   </div>
-
-  <div class="home-grid">
-    <section class="areas-section" aria-labelledby="areas-heading">
-      <div class="section-heading">
+  <section class="data-panel record-panel">
+    <form class="form-stack" @submit.prevent="refresh">
+      <CultivoFilter v-model:viveiro-id="filter.viveiroId" v-model:ciclo-id="filter.cicloId" />
+      <div class="form-columns">
+        <BaseField v-model="filter.inicio" label="De" type="date" /><BaseField
+          v-model="filter.fim"
+          label="Até"
+          type="date"
+        />
+      </div>
+      <div>
+        <BaseButton variant="secondary" type="submit" :disabled="summary.loading.value"
+          >Aplicar filtros</BaseButton
+        >
+      </div>
+    </form>
+    <BaseLoading v-if="summary.loading.value" /><BaseAlert
+      v-else-if="summary.error.value"
+      tone="error"
+      title="Não foi possível carregar os indicadores"
+      >{{ summary.error.value }}</BaseAlert
+    >
+    <template v-else-if="summary.data.value"
+      ><h2>Situação atual</h2>
+      <dl class="metrics-grid">
         <div>
-          <h2 id="areas-heading">Acesse uma área</h2>
+          <dt>Viveiros disponíveis</dt>
+          <dd>{{ summary.data.value.viveiros.DISPONIVEL }}</dd>
         </div>
-        <BaseField
-          ref="searchField"
-          v-model="search"
-          type="search"
-          label="Buscar seção"
-          hide-label
-          placeholder="Buscar seção"
-          autocomplete="off"
-        >
-          <template #leading><Search :size="17" :stroke-width="1.8" /></template>
-        </BaseField>
-      </div>
-
-      <div v-if="filteredSections.length" class="section-grid">
-        <RouterLink
-          v-for="section in filteredSections"
-          :key="section.path"
-          :to="section.path"
-          class="section-card"
-        >
-          <div class="section-card-top">
-            <span class="section-icon"
-              ><component :is="section.icon" :size="25" :stroke-width="1.6" /></span
-            ><ArrowUpRight :size="18" class="section-card-arrow" />
+        <div>
+          <dt>Viveiros ocupados</dt>
+          <dd>{{ summary.data.value.viveiros.OCUPADO }}</dd>
+        </div>
+        <div>
+          <dt>Ciclos ativos</dt>
+          <dd>{{ summary.data.value.ciclosAtivos }}</dd>
+        </div>
+        <div>
+          <dt>Alertas pendentes</dt>
+          <dd>{{ summary.data.value.alertasPendentes }}</dd>
+        </div>
+      </dl>
+      <template v-if="auth.isAdmin && summary.data.value.financeiro"
+        ><h2>Financeiro do período</h2>
+        <dl class="metrics-grid">
+          <div>
+            <dt>Despesas registradas</dt>
+            <dd>{{ currency(summary.data.value.financeiro.despesas) }}</dd>
           </div>
-          <h3>{{ section.title }}</h3>
-          <span class="section-card-link">Acessar área<ArrowRight :size="15" /></span>
-        </RouterLink>
-      </div>
-      <BaseEmptyState
-        v-else
-        title="Nenhuma seção encontrada"
-        description="Tente outro termo ou limpe a busca para ver todas as áreas."
-        :icon="Search"
+          <div>
+            <dt>Receitas de vendas</dt>
+            <dd>{{ currency(summary.data.value.financeiro.receitas) }}</dd>
+          </div>
+          <div>
+            <dt>Saldo registrado</dt>
+            <dd>{{ currency(summary.data.value.financeiro.saldoRegistrado) }}</dd>
+          </div>
+          <div>
+            <dt>Peso vendido</dt>
+            <dd>{{ summary.data.value.financeiro.pesoVendidoKg.toLocaleString('pt-BR') }} kg</dd>
+          </div>
+        </dl></template
       >
-        <BaseButton variant="secondary" @click="clearSearch">Limpar busca</BaseButton>
-      </BaseEmptyState>
-    </section>
-
-    <aside class="home-rail" aria-label="Conexão">
-      <ConnectionStatus />
-    </aside>
-  </div>
+    </template>
+  </section>
+  <section class="data-panel record-panel">
+    <h2>Evolução das medições</h2>
+    <BaseAlert v-if="catalogError" tone="error" title="Parâmetros indisponíveis">{{
+      catalogError
+    }}</BaseAlert>
+    <BaseSelect v-model="parametroId" label="Parâmetro" name="parametroId"
+      ><option v-for="parameter in parameters" :key="parameter.id" :value="String(parameter.id)">
+        {{ parameter.nome }} ({{ parameter.unidadePadrao }})
+      </option></BaseSelect
+    >
+    <p v-if="!filter.cicloId" class="empty-message">
+      Selecione um viveiro e um ciclo para consultar a evolução.
+    </p>
+    <BaseLoading v-else-if="evolution.loading.value" /><BaseAlert
+      v-else-if="evolution.error.value"
+      title="Não foi possível carregar o gráfico"
+      tone="error"
+      >{{ evolution.error.value }}</BaseAlert
+    >
+    <template v-else-if="evolution.data.value"
+      ><p v-if="evolution.data.value.truncado">
+        Exibindo as primeiras 500 medições. Reduza o período para consultar os demais registros.
+      </p>
+      <MeasurementChart
+        :points="evolution.data.value.medicoes"
+        :name="evolution.data.value.parametro.nome"
+        :unit="evolution.data.value.parametro.unidadePadrao"
+    /></template>
+  </section>
 </template>

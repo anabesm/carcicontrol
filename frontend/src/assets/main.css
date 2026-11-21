@@ -2047,6 +2047,36 @@ h1 {
 .expense-total {
   padding: 16px 0;
 }
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0 32px;
+}
+.metrics-grid dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+.metrics-grid dd {
+  margin: 8px 0 0;
+  font-weight: 650;
+  font-size: clamp(20px, 2vw, 30px);
+  overflow-wrap: anywhere;
+}
+.measurement-chart {
+  width: 100%;
+  height: auto;
+  margin: 20px 0;
+}
+.measurement-chart text {
+  font-size: 13px;
+  fill: #526077;
+}
+@media (max-width: 1000px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .expense-breakdown {
   padding-left: 20px;
   margin: 12px 0;
