@@ -25,14 +25,21 @@ export function cookieOptions(options: SessionOptions): CookieOptions {
 
 export function readSessionToken(request: Request): string | undefined {
   const prefix = `${sessionCookieName}=`;
-  const cookies = request.headers.cookie?.split(";").map((item) => item.trim())
-    .filter((item) => item.startsWith(prefix)) ?? [];
+  const cookies =
+    request.headers.cookie
+      ?.split(";")
+      .map((item) => item.trim())
+      .filter((item) => item.startsWith(prefix)) ?? [];
   if (cookies.length !== 1) return undefined;
   const token = cookies[0]?.slice(prefix.length);
   return token && /^[a-f0-9]{64}$/.test(token) ? token : undefined;
 }
 
-export async function createSession(db: PrismaClient, usuarioId: number, ttlMs: number) {
+export async function createSession(
+  db: Pick<PrismaClient, "sessaoUsuario">,
+  usuarioId: number,
+  ttlMs: number,
+) {
   const token = randomBytes(32).toString("hex");
   const expiraEm = new Date(Date.now() + ttlMs);
   await db.sessaoUsuario.create({

@@ -22,16 +22,33 @@ export function createAuthRouter(db: PrismaClient, options: SessionOptions) {
     });
 
     if (!found) dummyHash ??= hashPassword(randomBytes(32).toString("hex"));
-    const valid = await verifyPassword(senha, found?.senha ?? await dummyHash!);
+    const valid = await verifyPassword(
+      senha,
+      found?.senha ?? (await dummyHash!),
+    );
 
     if (!found || !valid || found.status !== "ATIVO") {
       throw new HttpError(401, "E-mail ou senha inválidos.");
     }
 
     const { senha: _passwordHash, ...usuario } = found;
-    const session = await createSession(db, usuario.id, options.ttlMs);
+    const session = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Usuario" WHERE "id" = ${usuario.id} FOR UPDATE`;
+      const current = await tx.usuario.findUnique({
+        where: { id: usuario.id },
+        select: { senha: true, status: true },
+      });
+      if (
+        !current ||
+        current.status !== "ATIVO" ||
+        current.senha !== found.senha
+      )
+        throw new HttpError(401, "E-mail ou senha inválidos.");
+      return createSession(tx, usuario.id, options.ttlMs);
+    });
     response.cookie(sessionCookieName, session.token, {
-      ...cookieOptions(options), expires: session.expiraEm,
+      ...cookieOptions(options),
+      expires: session.expiraEm,
     });
     response.json({ usuario });
   });
@@ -41,7 +58,9 @@ export function createAuthRouter(db: PrismaClient, options: SessionOptions) {
   });
 
   router.post("/logout", authenticate, async (request, response) => {
-    await db.sessaoUsuario.deleteMany({ where: { tokenHash: request.auth!.tokenHash } });
+    await db.sessaoUsuario.deleteMany({
+      where: { tokenHash: request.auth!.tokenHash },
+    });
     response.clearCookie(sessionCookieName, cookieOptions(options));
     response.status(204).end();
   });

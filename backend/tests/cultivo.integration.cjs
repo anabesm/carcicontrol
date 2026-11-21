@@ -448,3 +448,149 @@ test("indicadores respeitam filtros, período e parâmetros e devolvem ausência
     400,
   );
 });
+
+test("gestão de funcionários preserva privilégios e inativa todas as sessões", async () => {
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}`, {
+        method: "PATCH",
+        cookie: employeeCookie,
+        body: { nome: "Outro nome" },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}`, {
+        method: "PATCH",
+        body: { perfil: "ADMINISTRADOR" },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}`, {
+        method: "PATCH",
+        body: { email: admin.email.toUpperCase() },
+      })
+    ).status,
+    409,
+  );
+  const edited = await request(`/usuarios/${employee.id}`, {
+    method: "PATCH",
+    body: { nome: "Funcionário editado", telefone: "85999999999" },
+  });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.usuario.nome, "Funcionário editado");
+  assert.equal("senha" in edited.body.usuario, false);
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}`, {
+        method: "PATCH",
+        body: { status: "INATIVO" },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request("/auth/me", { cookie: employeeCookie })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request("/auth/login", {
+        method: "POST",
+        cookie: null,
+        body: { email: employee.email, senha: password },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}`, {
+        method: "PATCH",
+        body: { status: "ATIVO" },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request("/auth/me", { cookie: employeeCookie })).status,
+    401,
+  );
+  const login = await request("/auth/login", {
+    method: "POST",
+    cookie: null,
+    body: { email: employee.email, senha: password },
+  });
+  assert.equal(login.status, 200);
+  employeeCookie = login.headers.get("set-cookie").split(";")[0];
+});
+test("administrador redefine credenciais sem expor hash e encerra sessões anteriores", async () => {
+  const novaSenha = `Nova-${randomUUID()}`;
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}/senha`, {
+        method: "POST",
+        cookie: employeeCookie,
+        body: { senha: novaSenha },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}/senha`, {
+        method: "POST",
+        body: { senha: "123" },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(`/usuarios/${employee.id}/senha`, {
+        method: "POST",
+        body: { senha: novaSenha },
+      })
+    ).status,
+    204,
+  );
+  assert.equal(
+    (await request("/auth/me", { cookie: employeeCookie })).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request("/auth/login", {
+        method: "POST",
+        cookie: null,
+        body: { email: employee.email, senha: password },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request("/auth/login", {
+        method: "POST",
+        cookie: null,
+        body: { email: employee.email, senha: novaSenha },
+      })
+    ).status,
+    200,
+  );
+  await request(`/usuarios/${employee.id}/senha`, {
+    method: "POST",
+    body: { senha: password },
+  });
+  const login = await request("/auth/login", {
+    method: "POST",
+    cookie: null,
+    body: { email: employee.email, senha: password },
+  });
+  employeeCookie = login.headers.get("set-cookie").split(";")[0];
+});
