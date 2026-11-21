@@ -7,11 +7,15 @@ import { HttpError } from "./lib/http-error";
 import { createUsuariosRouter } from "./usuarios/routes";
 import { createViveirosRouter } from "./viveiros/routes";
 import { createMedicoesRouter } from "./medicoes/routes";
+import { createEventosRouter } from "./eventos/routes";
 
-export function createApp(checkDatabase: () => Promise<void>, auth?: {
-  db: PrismaClient;
-  session: SessionOptions;
-}) {
+export function createApp(
+  checkDatabase: () => Promise<void>,
+  auth?: {
+    db: PrismaClient;
+    session: SessionOptions;
+  },
+) {
   const app = express();
   app.disable("x-powered-by");
   app.use((_request, response, next) => {
@@ -35,21 +39,39 @@ export function createApp(checkDatabase: () => Promise<void>, auth?: {
     app.use("/usuarios", createUsuariosRouter(auth.db, auth.session));
     app.use("/viveiros", createViveirosRouter(auth.db, auth.session));
     app.use(createMedicoesRouter(auth.db, auth.session));
+    app.use("/eventos", createEventosRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {
     response.status(404).json({ error: "Rota não encontrada." });
   });
 
-  const handleError: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
+  const handleError: ErrorRequestHandler = (
+    error: unknown,
+    _request,
+    response,
+    _next,
+  ) => {
     if (error instanceof HttpError) {
-      response.status(error.status).json({ error: error.message, ...(error.detalhes ? { detalhes: error.detalhes } : {}) });
+      response.status(error.status).json({
+        error: error.message,
+        ...(error.detalhes ? { detalhes: error.detalhes } : {}),
+      });
     } else if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json({ error: "JSON inválido." });
-    } else if (error && typeof error === "object" && "type" in error && error.type === "entity.too.large") {
-      response.status(413).json({ error: "O corpo da requisição excedeu o limite permitido." });
+    } else if (
+      error &&
+      typeof error === "object" &&
+      "type" in error &&
+      error.type === "entity.too.large"
+    ) {
+      response
+        .status(413)
+        .json({ error: "O corpo da requisição excedeu o limite permitido." });
     } else {
-      response.status(500).json({ error: "Não foi possível concluir a operação." });
+      response
+        .status(500)
+        .json({ error: "Não foi possível concluir a operação." });
     }
   };
   app.use(handleError);
