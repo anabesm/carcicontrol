@@ -66,6 +66,12 @@ export function createAppRouter(
             meta: { title: 'Medições de água' },
           },
           {
+            path: '/eventos',
+            name: 'eventos',
+            component: () => import('@/views/EventosView.vue'),
+            meta: { title: 'Ocorrências' },
+          },
+          {
             path: '/funcionarios',
             name: 'funcionarios',
             component: () => import('@/views/EmployeesView.vue'),
