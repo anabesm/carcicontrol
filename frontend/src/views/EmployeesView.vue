@@ -112,6 +112,7 @@ onBeforeUnmount(() => {
           <th scope="col">Contato</th>
           <th scope="col">Perfil</th>
           <th scope="col">Situação</th>
+          <th scope="col">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -130,9 +131,13 @@ onBeforeUnmount(() => {
               >{{ user.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}</span
             >
           </td>
+          <td>
+            <RouterLink :to="`/funcionarios/${user.id}/editar`" class="text-link"
+              >Editar</RouterLink
+            >
+          </td>
         </tr>
       </tbody>
     </table>
   </section>
-  <p class="page-footnote">Somente administradores podem consultar e cadastrar funcionários.</p>
 </template>

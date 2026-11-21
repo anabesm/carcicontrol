@@ -103,6 +103,13 @@ export function createAppRouter(
             meta: { title: 'Novo funcionário', adminOnly: true },
           },
           {
+            path: '/funcionarios/:id/editar',
+            name: 'editar-funcionario',
+            props: true,
+            component: () => import('@/views/EditEmployeeView.vue'),
+            meta: { title: 'Editar funcionário', adminOnly: true },
+          },
+          {
             path: '/acesso-negado',
             name: 'acesso-negado',
             component: () => import('@/views/ForbiddenView.vue'),
