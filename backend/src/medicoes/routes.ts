@@ -12,9 +12,10 @@ import {
   recordMedicao,
 } from "./service";
 import { catalogCycle, historyQuery, validateNewMedicao } from "./validation";
-import { bodyObject, id, text } from "../lib/input";
+import { bodyObject, date, id, text } from "../lib/input";
 import { HttpError } from "../lib/http-error";
 import { alertaBaseSelect } from "./selects";
+import { supportedCodes } from "./definitions";
 
 export function createMedicoesRouter(
   db: PrismaClient,
@@ -25,9 +26,31 @@ export function createMedicoesRouter(
     ["/parametros", "/medicoes", "/alertas"],
     requireAuthentication(db, options),
   );
+  router.get("/parametros/catalogo", async (_request, response) =>
+    response.json({
+      parametros: await db.parametro.findMany({
+        where: { ativo: true, codigo: { in: supportedCodes } },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          unidadePadrao: true,
+          minPossivel: true,
+          maxPossivel: true,
+        },
+        orderBy: { nome: "asc" },
+      }),
+    }),
+  );
   router.get("/parametros", async (request, response) => {
     response.json({
-      parametros: await listParameters(db, catalogCycle(request.query)),
+      parametros: await listParameters(
+        db,
+        catalogCycle(request.query),
+        request.query.medidoEm === undefined
+          ? undefined
+          : date(request.query.medidoEm, "Data da medição"),
+      ),
     });
   });
   router.get("/medicoes", async (request, response) => {

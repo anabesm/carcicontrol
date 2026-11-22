@@ -13,6 +13,7 @@ import { createVendasRouter } from "./vendas/routes";
 import { createIndicadoresRouter } from "./indicadores/routes";
 import type { RecoveryOptions } from "./auth/recovery";
 import { createRotinasRouter } from "./rotinas/routes";
+import { createFaixasRouter } from "./faixas/routes";
 
 export function createApp(
   checkDatabase: () => Promise<void>,
@@ -50,6 +51,7 @@ export function createApp(
     app.use("/vendas", createVendasRouter(auth.db, auth.session));
     app.use("/indicadores", createIndicadoresRouter(auth.db, auth.session));
     app.use("/rotinas", createRotinasRouter(auth.db, auth.session));
+    app.use("/faixas", createFaixasRouter(auth.db, auth.session));
   }
 
   app.use((_request, response) => {

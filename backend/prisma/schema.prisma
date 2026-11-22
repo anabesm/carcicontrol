@@ -193,6 +193,9 @@ model FaixaParametro {
   maxAcaoRecomendada String?
   descricao          String?
   demonstrativa      Boolean   @default(false)
+  faseNome           String?
+  diaInicial         Int       @default(0)
+  diaFinal           Int?
   ativo              Boolean   @default(true)
   criadoPor          Int
   criadoEm           DateTime  @default(now())

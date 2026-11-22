@@ -362,3 +362,16 @@ pendente somente depois do fim da janela. Horários específicos de um viveiro
 substituem os globais daquele parâmetro. As consultas consideram ciclos ativos
 e a configuração atual dos horários. Conversões de fuso usam
 [Luxon](https://moment.github.io/luxon/api-docs/index.html).
+
+## Faixas por viveiro e fase
+
+Administradores consultam `GET /faixas` e `GET /faixas/parametros`, cadastram com
+`POST /faixas`, criam uma nova versão com `PUT /faixas/:id` e desativam com
+`PATCH /faixas/:id` usando `ativo: false`. Fases usam intervalos inclusivos de
+dias, contando o dia do povoamento como dia zero no fuso `America/Sao_Paulo`.
+
+Uma faixa específica do viveiro prevalece sobre a global. Dentro do mesmo escopo,
+a fase aplicável prevalece sobre a faixa padrão. Fases sobrepostas são recusadas.
+A API utiliza a data/hora efetiva da medição para escolher a fase. A edição
+desativa a versão antiga e cria outra, preservando os limites aplicados ao
+histórico. `GET /parametros` aceita `medidoEm` para consultar a faixa daquela data.

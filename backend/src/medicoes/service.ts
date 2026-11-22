@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient, StatusCiclo } from "@prisma/client";
 import { HttpError } from "../lib/http-error";
 import { supportedCodes } from "./definitions";
-import { assessValue, resolveFaixa } from "./rules";
+import { assessValue, cycleDay, resolveFaixa } from "./rules";
 import {
   alertaBaseSelect,
   medicaoBaseSelect,
@@ -11,7 +11,12 @@ import {
 } from "./selects";
 import type { historyQuery, validateNewMedicao } from "./validation";
 
-type LockedCycle = { id: number; viveiroId: number; status: StatusCiclo; dataInicio: Date };
+type LockedCycle = {
+  id: number;
+  viveiroId: number;
+  status: StatusCiclo;
+  dataInicio: Date;
+};
 
 export async function recordMedicao(
   db: PrismaClient,
@@ -28,21 +33,35 @@ export async function recordMedicao(
     if (cycle.status !== "ATIVO")
       throw new HttpError(409, "Somente ciclos ativos podem receber medições.");
     if (input.medidoEm < cycle.dataInicio)
-      throw new HttpError(400, "A medição não pode ser anterior ao início do ciclo.");
+      throw new HttpError(
+        400,
+        "A medição não pode ser anterior ao início do ciclo.",
+      );
 
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(9172630)`;
     const parameter = await tx.parametro.findUnique({
       where: { id: input.parametroId },
       select: parametroConfigSelect,
     });
     if (!parameter) throw new HttpError(404, "Parâmetro não encontrado.");
-    if (!parameter.ativo || !supportedCodes.some((code) => code === parameter.codigo))
-      throw new HttpError(400, "Parâmetro indisponível para registro de medições.");
+    if (
+      !parameter.ativo ||
+      !supportedCodes.some((code) => code === parameter.codigo)
+    )
+      throw new HttpError(
+        400,
+        "Parâmetro indisponível para registro de medições.",
+      );
     if (input.unidade !== parameter.unidadePadrao)
       throw new HttpError(
         400,
         `Unidade inválida. Use ${parameter.unidadePadrao} para ${parameter.nome}.`,
       );
-    const range = resolveFaixa(parameter, cycle.viveiroId);
+    const range = resolveFaixa(
+      parameter,
+      cycle.viveiroId,
+      cycleDay(cycle.dataInicio, input.medidoEm),
+    );
     const assessment = assessValue(parameter, range, input.valor);
     const anomaly = assessment.direction !== null;
 
@@ -63,6 +82,9 @@ export async function recordMedicao(
             maxIdeal: range.maxIdeal,
             demonstrativa: range.demonstrativa,
             descricao: range.descricao,
+            faseNome: range.faseNome,
+            diaInicial: range.diaInicial,
+            diaFinal: range.diaFinal,
           },
           direcao: assessment.direction,
         },
@@ -104,19 +126,31 @@ export async function recordMedicao(
   return publicMedicao(row);
 }
 
-export async function listParameters(db: PrismaClient, cicloId?: number) {
+export async function listParameters(
+  db: PrismaClient,
+  cicloId?: number,
+  medidoEm = new Date(),
+) {
   const cycle =
     cicloId === undefined
       ? null
-      : await db.cicloCultivo.findUnique({ where: { id: cicloId }, select: { viveiroId: true } });
-  if (cicloId !== undefined && !cycle) throw new HttpError(404, "Ciclo não encontrado.");
+      : await db.cicloCultivo.findUnique({
+          where: { id: cicloId },
+          select: { viveiroId: true, dataInicio: true },
+        });
+  if (cicloId !== undefined && !cycle)
+    throw new HttpError(404, "Ciclo não encontrado.");
   const parameters = await db.parametro.findMany({
     where: { ativo: true, codigo: { in: supportedCodes } },
     select: parametroConfigSelect,
     orderBy: { nome: "asc" },
   });
   return parameters.map((parameter) => {
-    const range = resolveFaixa(parameter, cycle?.viveiroId);
+    const range = resolveFaixa(
+      parameter,
+      cycle?.viveiroId,
+      cycle ? cycleDay(cycle.dataInicio, medidoEm) : undefined,
+    );
     return {
       id: parameter.id,
       codigo: parameter.codigo,
@@ -132,6 +166,9 @@ export async function listParameters(db: PrismaClient, cicloId?: number) {
         maxCritico: range.maxCritico,
         demonstrativa: range.demonstrativa,
         descricao: range.descricao,
+        faseNome: range.faseNome,
+        diaInicial: range.diaInicial,
+        diaFinal: range.diaFinal,
       },
     };
   });
@@ -141,12 +178,18 @@ type HistoryFilter = ReturnType<typeof historyQuery>;
 async function checkFilters(db: PrismaClient, filter: HistoryFilter) {
   if (
     filter.cicloId !== undefined &&
-    !(await db.cicloCultivo.findUnique({ where: { id: filter.cicloId }, select: { id: true } }))
+    !(await db.cicloCultivo.findUnique({
+      where: { id: filter.cicloId },
+      select: { id: true },
+    }))
   )
     throw new HttpError(404, "Ciclo não encontrado.");
   if (
     filter.parametroId !== undefined &&
-    !(await db.parametro.findUnique({ where: { id: filter.parametroId }, select: { id: true } }))
+    !(await db.parametro.findUnique({
+      where: { id: filter.parametroId },
+      select: { id: true },
+    }))
   )
     throw new HttpError(404, "Parâmetro não encontrado.");
 }
@@ -155,7 +198,9 @@ export async function listMedicoes(db: PrismaClient, filter: HistoryFilter) {
   await checkFilters(db, filter);
   const where: Prisma.MedicaoWhereInput = {
     ...(filter.cicloId === undefined ? {} : { cicloId: filter.cicloId }),
-    ...(filter.parametroId === undefined ? {} : { parametroId: filter.parametroId }),
+    ...(filter.parametroId === undefined
+      ? {}
+      : { parametroId: filter.parametroId }),
   };
   const [rows, total] = await db.$transaction(
     [
@@ -170,7 +215,12 @@ export async function listMedicoes(db: PrismaClient, filter: HistoryFilter) {
     ],
     { isolationLevel: "RepeatableRead" },
   );
-  return { medicoes: rows.map(publicMedicao), total, limite: filter.limite, offset: filter.offset };
+  return {
+    medicoes: rows.map(publicMedicao),
+    total,
+    limite: filter.limite,
+    offset: filter.offset,
+  };
 }
 
 export async function listAlertas(db: PrismaClient, filter: HistoryFilter) {
@@ -179,7 +229,9 @@ export async function listAlertas(db: PrismaClient, filter: HistoryFilter) {
     ...(filter.status === undefined ? {} : { status: filter.status }),
     medicao: {
       ...(filter.cicloId === undefined ? {} : { cicloId: filter.cicloId }),
-      ...(filter.parametroId === undefined ? {} : { parametroId: filter.parametroId }),
+      ...(filter.parametroId === undefined
+        ? {}
+        : { parametroId: filter.parametroId }),
     },
   };
   const [rows, total] = await db.$transaction(
@@ -196,7 +248,10 @@ export async function listAlertas(db: PrismaClient, filter: HistoryFilter) {
     { isolationLevel: "RepeatableRead" },
   );
   return {
-    alertas: rows.map((row) => ({ ...row, medicao: publicMedicao(row.medicao) })),
+    alertas: rows.map((row) => ({
+      ...row,
+      medicao: publicMedicao(row.medicao),
+    })),
     total,
     limite: filter.limite,
     offset: filter.offset,

@@ -1,13 +1,43 @@
 import { HttpError } from "../lib/http-error";
 import type { FaixaConfig, ParametroConfig } from "./selects";
+import { DateTime } from "luxon";
 
-export function resolveFaixa(parameter: ParametroConfig, viveiroId?: number): FaixaConfig {
-  const specific = parameter.faixas.filter(
+export function cycleDay(start: Date, at: Date) {
+  const beginning = DateTime.fromISO(start.toISOString().slice(0, 10), {
+    zone: "America/Sao_Paulo",
+  }).startOf("day");
+  return Math.max(
+    0,
+    Math.floor(
+      DateTime.fromJSDate(at, { zone: "America/Sao_Paulo" })
+        .startOf("day")
+        .diff(beginning, "days").days,
+    ),
+  );
+}
+
+export function resolveFaixa(
+  parameter: ParametroConfig,
+  viveiroId?: number,
+  day?: number,
+): FaixaConfig {
+  const applicable = parameter.faixas.filter(
+    (range) =>
+      !range.faseNome ||
+      (day !== undefined &&
+        day >= range.diaInicial &&
+        (range.diaFinal === null || day <= range.diaFinal)),
+  );
+  const specific = applicable.filter(
     (range) => viveiroId !== undefined && range.viveiroId === viveiroId,
   );
-  const candidates = specific.length
+  const scoped = specific.length
     ? specific
-    : parameter.faixas.filter((range) => range.viveiroId === null);
+    : applicable.filter((range) => range.viveiroId === null);
+  const phases = scoped.filter((range) => Boolean(range.faseNome));
+  const candidates = phases.length
+    ? phases
+    : scoped.filter((range) => !range.faseNome);
   if (candidates.length !== 1)
     throw new HttpError(
       503,
@@ -36,23 +66,37 @@ export function resolveFaixa(parameter: ParametroConfig, viveiroId?: number): Fa
         range.maxCritico > max ||
         range.maxCritico < range.maxIdeal))
   ) {
-    throw new HttpError(503, `Os limites de ${parameter.nome} precisam ser revisados.`);
+    throw new HttpError(
+      503,
+      `Os limites de ${parameter.nome} precisam ser revisados.`,
+    );
   }
   return range;
 }
 
-export function assessValue(parameter: ParametroConfig, range: FaixaConfig, value: number) {
-  if (!Number.isFinite(value) || value < parameter.minPossivel! || value > parameter.maxPossivel!) {
+export function assessValue(
+  parameter: ParametroConfig,
+  range: FaixaConfig,
+  value: number,
+) {
+  if (
+    !Number.isFinite(value) ||
+    value < parameter.minPossivel! ||
+    value > parameter.maxPossivel!
+  ) {
     throw new HttpError(
       400,
       `Valor fora dos limites aceitos para ${parameter.nome}: ${parameter.minPossivel} a ${parameter.maxPossivel} ${parameter.unidadePadrao}.`,
     );
   }
-  const direction = value < range.minIdeal ? "ABAIXO" : value > range.maxIdeal ? "ACIMA" : null;
+  const direction =
+    value < range.minIdeal ? "ABAIXO" : value > range.maxIdeal ? "ACIMA" : null;
   const critical =
     direction === "ABAIXO"
       ? range.minCritico !== null && value < range.minCritico
-      : direction === "ACIMA" && range.maxCritico !== null && value > range.maxCritico;
+      : direction === "ACIMA" &&
+        range.maxCritico !== null &&
+        value > range.maxCritico;
   return {
     direction,
     gravidade: critical ? ("ALTA" as const) : ("MEDIA" as const),

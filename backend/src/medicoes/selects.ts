@@ -19,6 +19,9 @@ export const parametroConfigSelect = {
       maxCritico: true,
       descricao: true,
       demonstrativa: true,
+      faseNome: true,
+      diaInicial: true,
+      diaFinal: true,
     },
   },
 } satisfies Prisma.ParametroSelect;

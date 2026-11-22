@@ -175,6 +175,7 @@ after(async () => {
       where: { viveiroId: { in: ids } },
     });
     await db.cicloCultivo.deleteMany({ where: { viveiroId: { in: ids } } });
+    await db.faixaParametro.deleteMany({ where: { viveiroId: { in: ids } } });
     await db.viveiro.deleteMany({ where: { id: { in: ids } } });
     await db.faixaParametro.deleteMany({ where: { id: { in: rangeIds } } });
     await db.parametro.deleteMany({ where: { id: { in: paramIds } } });
@@ -967,5 +968,104 @@ test("rotina respeita fuso, janela, ciclo ativo e impede horários sobrepostos",
       )
     ).pendencias.length,
     0,
+  );
+});
+
+test("faixas por fase rejeitam sobreposição e preservam limites históricos após edição", async () => {
+  const p = await pond();
+  const body = {
+    parametroId: parameter.id,
+    viveiroId: p.id,
+    minIdeal: 6,
+    maxIdeal: 8,
+    faseNome: "Fase inicial",
+    diaInicial: 0,
+    diaFinal: 10,
+    demonstrativa: true,
+  };
+  assert.equal(
+    (await request("/faixas", { method: "POST", cookie: employeeCookie, body }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await request("/faixas", {
+        method: "POST",
+        body: { ...body, minIdeal: 35 },
+      })
+    ).status,
+    400,
+  );
+  const first = await request("/faixas", { method: "POST", body });
+  assert.equal(first.status, 201);
+  assert.equal(
+    (
+      await request("/faixas", {
+        method: "POST",
+        body: { ...body, diaInicial: 10, diaFinal: 20 },
+      })
+    ).status,
+    409,
+  );
+  const future = {
+    ...body,
+    faseNome: "Fase seguinte",
+    diaInicial: 11,
+    diaFinal: 30,
+  };
+  const simultaneous = await Promise.all(
+    [1, 2].map(() => request("/faixas", { method: "POST", body: future })),
+  );
+  assert.equal(simultaneous.filter((row) => row.status === 201).length, 1);
+  assert.equal(simultaneous.filter((row) => row.status === 409).length, 1);
+  const catalog = await request(
+    `/parametros?cicloId=${p.cycle.id}&medidoEm=${encodeURIComponent(occurred)}`,
+  );
+  const current = catalog.body.parametros.find(
+    (row) => row.id === parameter.id,
+  );
+  assert.equal(current.faixaIdeal.faseNome, "Fase inicial");
+  const reading = {
+    cicloId: p.cycle.id,
+    parametroId: parameter.id,
+    valor: 5.5,
+    unidade: "mg/L",
+    medidoEm: occurred,
+  };
+  assert.equal(
+    (await request("/medicoes", { method: "POST", body: reading })).status,
+    409,
+  );
+  const saved = await request("/medicoes", {
+    method: "POST",
+    body: { ...reading, confirmarAnomalia: true },
+  });
+  assert.equal(saved.status, 201);
+  assert.equal(saved.body.medicao.faixaAplicada.minIdeal, 6);
+  const edited = await request(`/faixas/${first.body.faixa.id}`, {
+    method: "PUT",
+    body: { ...body, minIdeal: 7, maxIdeal: 9 },
+  });
+  assert.equal(edited.status, 200);
+  assert.notEqual(edited.body.faixa.id, first.body.faixa.id);
+  assert.equal(
+    (await db.faixaParametro.findUnique({ where: { id: first.body.faixa.id } }))
+      .ativo,
+    false,
+  );
+  const history = (await request(`/medicoes?cicloId=${p.cycle.id}`)).body
+    .medicoes[0];
+  assert.equal(history.faixaAplicada.id, first.body.faixa.id);
+  assert.equal(history.faixaAplicada.minIdeal, 6);
+  assert.equal(history.faixaAplicada.maxIdeal, 8);
+  assert.equal(
+    (
+      await request("/medicoes", {
+        method: "POST",
+        body: { ...reading, valor: 6.5 },
+      })
+    ).status,
+    409,
   );
 });
