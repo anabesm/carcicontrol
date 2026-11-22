@@ -18,8 +18,21 @@ export interface ExpenseItem {
   valorTotalItem: number
   observacao?: string | null
 }
+export interface AlteracaoDespesa {
+  id: number
+  usuarioId: number
+  criadoEm: string
+  dadosAnteriores: {
+    versao: number
+    valorTotal: number
+    statusPagamento: string | null
+    fornecedorNome: string | null
+    itens: ExpenseItem[]
+  }
+}
 export interface Despesa {
   id: number
+  versao: number
   viveiroId: number | null
   cicloId: number | null
   data: string
@@ -31,13 +44,18 @@ export interface Despesa {
   observacao: string | null
   itens: ExpenseItem[]
   viveiro: { identificador: string } | null
+  historico?: AlteracaoDespesa[]
 }
-export type NewExpense = Omit<Despesa, 'id' | 'valorTotal' | 'viveiro' | 'itens'> & {
-  itens: Omit<ExpenseItem, 'valorTotalItem'>[]
-}
+export type NewExpense = Omit<
+  Despesa,
+  'id' | 'versao' | 'valorTotal' | 'viveiro' | 'itens' | 'historico'
+> & { itens: Omit<ExpenseItem, 'valorTotalItem'>[] }
 export const despesasApi = {
   list: (query: string) =>
     apiRequest<{ despesas: Despesa[]; total: number; valorTotal: number }>(`/despesas?${query}`),
   create: (body: NewExpense) =>
     apiRequest<{ despesa: Despesa }>('/despesas', { method: 'POST', body }),
+  detail: (id: number) => apiRequest<{ despesa: Despesa }>(`/despesas/${id}`),
+  update: (id: number, body: NewExpense & { versao: number }) =>
+    apiRequest<{ despesa: Despesa }>(`/despesas/${id}`, { method: 'PUT', body }),
 }

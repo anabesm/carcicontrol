@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useResource } from '@/composables/useResource'
-import { despesasApi, categories } from '@/services/despesas'
-import { currency, queryString } from '@/utils/records'
+import { despesasApi, categories, type Despesa } from '@/services/despesas'
+import { currency, dateTime, queryString } from '@/utils/records'
 import { formatDate } from '@/utils/viveiros'
 import CultivoFilter from '@/components/records/CultivoFilter.vue'
 import ExpenseForm from '@/components/records/ExpenseForm.vue'
@@ -14,6 +14,10 @@ const filter = reactive({ viveiroId: '', cicloId: '', inicio: '', fim: '' })
 const offset = ref(0)
 const showingForm = ref(false)
 const success = ref('')
+const editing = ref<Despesa | null>(null),
+  audit = ref<Despesa | null>(null)
+const actionError = ref(''),
+  fetching = ref(false)
 const { data, loading, error, load } = useResource(
   () => despesasApi.list(queryString({ ...filter, offset: offset.value })),
   { despesas: [], total: 0, valorTotal: 0 },
@@ -22,9 +26,33 @@ async function search() {
   offset.value = 0
   await load()
 }
+function toggleForm() {
+  showingForm.value = !showingForm.value
+  editing.value = null
+  actionError.value = ''
+}
+async function openExpense(row: Despesa, historyOnly = false) {
+  if (fetching.value) return
+  fetching.value = true
+  actionError.value = ''
+  try {
+    const record = (await despesasApi.detail(row.id)).despesa
+    if (historyOnly) audit.value = record
+    else {
+      editing.value = record
+      showingForm.value = true
+    }
+  } catch (cause) {
+    actionError.value =
+      cause instanceof Error ? cause.message : 'Não foi possível carregar a compra.'
+  } finally {
+    fetching.value = false
+  }
+}
 async function saved() {
   showingForm.value = false
-  success.value = 'Despesa registrada.'
+  success.value = editing.value ? 'Despesa atualizada.' : 'Despesa registrada.'
+  editing.value = null
   await search()
 }
 onMounted(load)
@@ -36,14 +64,22 @@ async function changePage(delta: number) {
 <template>
   <div class="page-intro">
     <h1>Despesas</h1>
-    <BaseButton @click="showingForm = !showingForm">{{
+    <BaseButton @click="toggleForm">{{
       showingForm ? 'Fechar formulário' : 'Nova despesa'
     }}</BaseButton>
   </div>
   <BaseAlert v-if="success" title="Registro salvo">{{ success }}</BaseAlert>
+  <BaseAlert v-if="actionError" title="Consulta da compra" tone="error">{{
+    actionError
+  }}</BaseAlert>
   <section v-if="showingForm" class="data-panel record-panel">
-    <h2>Nova despesa</h2>
-    <ExpenseForm @saved="saved" @cancel="showingForm = false" />
+    <h2>{{ editing ? `Editar despesa #${editing.id}` : 'Nova despesa' }}</h2>
+    <ExpenseForm
+      :key="editing?.id ?? 'new'"
+      :initial="editing ?? undefined"
+      @saved="saved"
+      @cancel="showingForm = false"
+    />
   </section>
   <section class="data-panel record-panel">
     <form class="form-stack" @submit.prevent="search">
@@ -78,6 +114,7 @@ async function changePage(delta: number) {
               <th>Vínculo</th>
               <th>Pagamento</th>
               <th>Total</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -105,6 +142,23 @@ async function changePage(delta: number) {
               <td>
                 <strong>{{ currency(row.valorTotal) }}</strong>
               </td>
+              <td>
+                <div class="inline-actions">
+                  <BaseButton
+                    variant="secondary"
+                    size="small"
+                    :disabled="fetching"
+                    @click="openExpense(row)"
+                    >Editar</BaseButton
+                  ><BaseButton
+                    variant="secondary"
+                    size="small"
+                    :disabled="fetching"
+                    @click="openExpense(row, true)"
+                    >Histórico</BaseButton
+                  >
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -121,5 +175,27 @@ async function changePage(delta: number) {
         >Próxima</BaseButton
       >
     </div>
+  </section>
+  <section v-if="audit" class="data-panel record-panel">
+    <div class="list-toolbar">
+      <h2>Histórico da despesa #{{ audit.id }}</h2>
+      <BaseButton variant="secondary" @click="audit = null">Fechar histórico</BaseButton>
+    </div>
+    <p>Versão atual: {{ audit.versao }}. Total: {{ currency(audit.valorTotal) }}.</p>
+    <p v-if="!audit.historico?.length" class="empty-message">Esta compra ainda não foi alterada.</p>
+    <details v-for="change in audit.historico" :key="change.id" class="expense-item">
+      <summary>
+        Versão {{ change.dadosAnteriores.versao }} — alterada em
+        {{ dateTime(change.criadoEm) }} pelo usuário #{{ change.usuarioId }}
+      </summary>
+      <p>Fornecedor: {{ change.dadosAnteriores.fornecedorNome || 'Não informado' }}</p>
+      <p>Total anterior: {{ currency(change.dadosAnteriores.valorTotal) }}</p>
+      <ul class="expense-breakdown">
+        <li v-for="(item, index) in change.dadosAnteriores.itens" :key="index">
+          {{ item.descricao }}: {{ item.quantidade }} {{ item.unidade }} ×
+          {{ currency(item.valorUnit) }} = {{ currency(item.valorTotalItem) }}
+        </li>
+      </ul>
+    </details>
   </section>
 </template>
