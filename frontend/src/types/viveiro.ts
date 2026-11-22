@@ -14,6 +14,7 @@ export interface CicloCultivo {
   motivoEncerramento?: 'VENDA' | 'PERDA_TOTAL' | null
   observacaoEncerramento?: string | null
   quantidadeFinal?: number | null
+  areaPovoamentoM2?: number | null
   criadoPor: number
   criadoEm: string
   atualizadoEm: string

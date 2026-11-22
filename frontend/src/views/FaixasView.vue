@@ -20,6 +20,36 @@ const loading = ref(true),
   saving = ref(false),
   error = ref(''),
   success = ref('')
+const ammonia = reactive({
+  minPossivel: '',
+  maxPossivel: '',
+  minIdeal: '',
+  maxIdeal: '',
+  demonstrativa: true,
+})
+const showAmmonia = ref(false)
+async function createAmmonia() {
+  if (saving.value) return
+  saving.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await faixasApi.createAmmonia({
+      minPossivel: decimal(ammonia.minPossivel),
+      maxPossivel: decimal(ammonia.maxPossivel),
+      minIdeal: decimal(ammonia.minIdeal),
+      maxIdeal: decimal(ammonia.maxIdeal),
+      demonstrativa: ammonia.demonstrativa,
+    })
+    showAmmonia.value = false
+    success.value = 'Amônia cadastrada para medições, alertas e gráficos.'
+    await load()
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : 'Não foi possível cadastrar o parâmetro.'
+  } finally {
+    saving.value = false
+  }
+}
 const form = reactive({
   parametroId: '',
   viveiroId: '',
@@ -131,6 +161,52 @@ onMounted(load)
   </div>
   <BaseAlert v-if="error" tone="error" title="Configuração de faixas">{{ error }}</BaseAlert
   ><BaseAlert v-if="success" title="Alteração salva">{{ success }}</BaseAlert>
+  <section
+    v-if="!loading && !parameters.some((p) => p.codigo === 'NH3')"
+    class="data-panel record-panel"
+  >
+    <BaseButton variant="secondary" :disabled="saving" @click="showAmmonia = !showAmmonia"
+      >Cadastrar amônia (NH3)</BaseButton
+    >
+    <form v-if="showAmmonia" class="form-stack" @submit.prevent="createAmmonia">
+      <h2>Amônia não ionizada (mg/L)</h2>
+      <div class="form-columns">
+        <BaseField
+          v-model="ammonia.minPossivel"
+          label="Mínimo de entrada (mg/L)"
+          inputmode="decimal"
+          required
+          :disabled="saving"
+        /><BaseField
+          v-model="ammonia.maxPossivel"
+          label="Máximo de entrada (mg/L)"
+          inputmode="decimal"
+          required
+          :disabled="saving"
+        />
+      </div>
+      <div class="form-columns">
+        <BaseField
+          v-model="ammonia.minIdeal"
+          label="Mínimo ideal (mg/L)"
+          inputmode="decimal"
+          required
+          :disabled="saving"
+        /><BaseField
+          v-model="ammonia.maxIdeal"
+          label="Máximo ideal (mg/L)"
+          inputmode="decimal"
+          required
+          :disabled="saving"
+        />
+      </div>
+      <label class="checkbox-label"
+        ><input v-model="ammonia.demonstrativa" type="checkbox" :disabled="saving" /> Faixa
+        demonstrativa de exemplo</label
+      >
+      <div><BaseButton type="submit" :disabled="saving">Salvar parâmetro</BaseButton></div>
+    </form>
+  </section>
   <section v-if="showingForm" class="data-panel record-panel">
     <h2>{{ previousId ? 'Nova versão da faixa' : 'Nova faixa' }}</h2>
     <form class="form-stack" @submit.prevent="save">

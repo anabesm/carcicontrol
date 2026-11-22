@@ -111,6 +111,12 @@ export function createAppRouter(
             meta: { title: 'Faixas de parâmetros', adminOnly: true },
           },
           {
+            path: '/relatorios',
+            name: 'relatorios',
+            component: () => import('@/views/RelatoriosView.vue'),
+            meta: { title: 'Relatórios', adminOnly: true },
+          },
+          {
             path: '/eventos',
             name: 'eventos',
             component: () => import('@/views/EventosView.vue'),

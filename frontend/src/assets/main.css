@@ -2084,6 +2084,28 @@ h1 {
   font-size: 13px;
   fill: #526077;
 }
+.chart-legend {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+  font-size: 13px;
+}
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+}
+.legend-income {
+  background: #1351b4;
+}
+.legend-cost {
+  background: #8b97a8;
+}
 @media (max-width: 1000px) {
   .metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

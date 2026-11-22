@@ -28,6 +28,13 @@ export interface Faixa {
 }
 export type NewRange = Omit<Faixa, 'id' | 'ativo' | 'parametro' | 'viveiro'>
 export const faixasApi = {
+  createAmmonia: (body: {
+    minPossivel: number
+    maxPossivel: number
+    minIdeal: number
+    maxIdeal: number
+    demonstrativa: boolean
+  }) => apiRequest('/faixas/parametros', { method: 'POST', body: { codigo: 'NH3', ...body } }),
   catalog: () => apiRequest<{ parametros: ParametroConfiguravel[] }>('/faixas/parametros'),
   list: () => apiRequest<{ faixas: Faixa[] }>('/faixas'),
   save: (body: NewRange, previousId?: number) =>

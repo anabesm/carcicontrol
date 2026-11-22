@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Clock,
   SlidersHorizontal,
+  ChartColumn,
 } from '@lucide/vue'
 
 export interface Section {
@@ -20,6 +21,13 @@ export interface Section {
 }
 
 export const sections: Section[] = [
+  {
+    path: '/relatorios',
+    name: 'Relatórios',
+    title: 'Relatórios',
+    icon: ChartColumn,
+    adminOnly: true,
+  },
   {
     path: '/faixas',
     name: 'Parâmetros',
