@@ -86,6 +86,13 @@ export function createAppRouter(
             meta: { title: 'Encerrar ciclo', adminOnly: true },
           },
           {
+            path: '/viveiros/:id/editar',
+            name: 'editar-viveiro',
+            props: true,
+            component: () => import('@/views/EditPondView.vue'),
+            meta: { title: 'Editar viveiro', adminOnly: true },
+          },
+          {
             path: '/vendas',
             name: 'vendas',
             component: () => import('@/views/VendasView.vue'),

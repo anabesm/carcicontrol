@@ -40,6 +40,9 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
         <h1 class="record-title">{{ viveiro.identificador }}</h1>
       </div>
       <StatusBadge v-bind="pondStates[viveiro.status]" />
+      <BaseButton v-if="auth.isAdmin" :to="`/viveiros/${viveiro.id}/editar`" variant="secondary"
+        >Editar viveiro</BaseButton
+      >
     </div>
     <div class="pond-details-grid">
       <section class="data-panel pond-info-panel" aria-labelledby="pond-info-heading">

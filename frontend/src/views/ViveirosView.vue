@@ -41,6 +41,16 @@ const filtered = computed(() =>
   ),
 )
 const filters = computed(() => [
+  {
+    value: 'INATIVO',
+    label: 'Inativos',
+    count: viveiros.value.filter((pond) => pond.status === 'INATIVO').length,
+  },
+  {
+    value: 'MANUTENCAO',
+    label: 'Em manutenção',
+    count: viveiros.value.filter((pond) => pond.status === 'MANUTENCAO').length,
+  },
   { value: 'TODOS', label: 'Todos', count: viveiros.value.length },
   {
     value: 'DISPONIVEL',

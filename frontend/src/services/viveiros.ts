@@ -8,6 +8,8 @@ import type {
 } from '@/types/viveiro'
 
 export const viveirosApi = {
+  update: (id: string, body: Record<string, unknown>) =>
+    apiRequest(`/viveiros/${id}`, { method: 'PATCH', body }),
   closeCycle: (id: string | number, cicloId: string | number, body: Record<string, unknown>) =>
     apiRequest(`/viveiros/${id}/ciclos/${cicloId}/encerramento`, { method: 'POST', body }),
   list: () => apiRequest<{ viveiros: Viveiro[] }>('/viveiros'),
