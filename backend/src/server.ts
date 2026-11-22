@@ -1,6 +1,7 @@
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { checkDatabase, prisma } from "./lib/prisma";
+import { startDailySummaryWorker } from "./whatsapp/service";
 
 async function start(): Promise<void> {
   await prisma.$connect();
@@ -13,9 +14,13 @@ async function start(): Promise<void> {
   const server = app.listen(env.port, env.host, () => {
     console.info(`API disponível em http://${env.host}:${env.port}`);
   });
+  const stopDailySummary = startDailySummaryWorker(prisma);
 
   server.on("error", () => {
-    console.error("Não foi possível abrir a porta da API. Verifique HOST e PORT.");
+    stopDailySummary();
+    console.error(
+      "Não foi possível abrir a porta da API. Verifique HOST e PORT.",
+    );
     void prisma.$disconnect().finally(() => {
       process.exitCode = 1;
     });
@@ -26,6 +31,7 @@ async function start(): Promise<void> {
   const shutdown = () => {
     if (shuttingDown) return;
     shuttingDown = true;
+    stopDailySummary();
 
     const timeout = setTimeout(() => {
       console.error("O encerramento da API excedeu o tempo limite.");
@@ -53,7 +59,9 @@ async function start(): Promise<void> {
 }
 
 void start().catch(async () => {
-  console.error("Não foi possível iniciar a API. Verifique a configuração e o PostgreSQL.");
+  console.error(
+    "Não foi possível iniciar a API. Verifique a configuração e o PostgreSQL.",
+  );
   await prisma.$disconnect();
   process.exitCode = 1;
 });

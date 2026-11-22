@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { before, after, test } = require("node:test");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHmac } = require("node:crypto");
 const { once } = require("node:events");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
@@ -23,6 +23,36 @@ const prefix = `cultivo-${randomUUID()}`;
 const password = `Teste-${randomUUID()}`;
 let server, base, admin, employee, adminCookie, employeeCookie, parameter;
 const recoveryMessages = [];
+let originalWhatsAppConfig,
+  scopedDb,
+  providerCalls = 0;
+let providerMode = "ok";
+const whatsappOptions = {
+  accessToken: "token-de-teste-local",
+  phoneNumberId: "123456789",
+  version: "v27.0",
+  appSecret: "segredo-de-assinatura-do-teste",
+  verifyToken: "verificacao-local",
+  fetcher: async (_url, options) => {
+    providerCalls++;
+    const body = JSON.parse(options.body);
+    assert.equal(body.type, "template");
+    assert.equal(body.messaging_product, "whatsapp");
+    assert.equal(
+      body.template.components[0].parameters[0].text.length <= 1000,
+      true,
+    );
+    if (providerMode === "timeout") throw new Error("Timeout simulado");
+    if (providerMode === "bad-request")
+      return new Response("{}", { status: 400 });
+    return new Response(
+      JSON.stringify({
+        messages: [{ id: `wamid.teste-${body.biz_opaque_callback_data}` }],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  },
+};
 const ids = [];
 const paramIds = [],
   rangeIds = [];
@@ -131,12 +161,45 @@ before(async () => {
   for (const r of await db.faixaParametro.findMany({ select: { id: true } }))
     if (!oldRanges.some((old) => old.id === r.id)) rangeIds.push(r.id);
   parameter = await db.parametro.findUnique({ where: { codigo: "OD" } });
+  originalWhatsAppConfig = await db.configResumoWhatsApp.findUnique({
+    where: { id: 1 },
+  });
+  scopedDb = db.$extends({
+    query: {
+      contatoWhatsApp: {
+        findMany({ args, query }) {
+          args.where = { AND: [args.where ?? {}, { criadoPor: admin.id }] };
+          return query(args);
+        },
+      },
+      envioWhatsApp: {
+        findMany({ args, query }) {
+          args.where = {
+            AND: [args.where ?? {}, { contato: { criadoPor: admin.id } }],
+          };
+          return query(args);
+        },
+        count({ args, query }) {
+          args.where = {
+            AND: [args.where ?? {}, { contato: { criadoPor: admin.id } }],
+          };
+          return query(args);
+        },
+        updateMany({ args, query }) {
+          args.where = {
+            AND: [args.where ?? {}, { contato: { criadoPor: admin.id } }],
+          };
+          return query(args);
+        },
+      },
+    },
+  });
   server = createApp(
     async () => {
       await db.$queryRaw`SELECT 1`;
     },
     {
-      db,
+      db: scopedDb,
       session: { ttlMs: 3600000, secure: false },
       recovery: {
         appUrl: "http://127.0.0.1:5173",
@@ -144,6 +207,7 @@ before(async () => {
           recoveryMessages.push(message);
         },
       },
+      whatsapp: whatsappOptions,
     },
   ).listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -163,6 +227,17 @@ before(async () => {
 after(async () => {
   if (server) await new Promise((resolve) => server.close(resolve));
   try {
+    await db.envioWhatsApp.deleteMany({
+      where: { contato: { criadoPor: admin?.id } },
+    });
+    await db.contatoWhatsApp.deleteMany({ where: { criadoPor: admin?.id } });
+    if (originalWhatsAppConfig)
+      await db.configResumoWhatsApp.upsert({
+        where: { id: 1 },
+        create: originalWhatsAppConfig,
+        update: originalWhatsAppConfig,
+      });
+    else await db.configResumoWhatsApp.deleteMany({ where: { id: 1 } });
     await db.alerta.deleteMany({
       where: { medicao: { ciclo: { viveiroId: { in: ids } } } },
     });
@@ -1238,4 +1313,219 @@ test("amônia pode ser configurada explicitamente e segue as mesmas regras de me
     ).body.medicoes.length,
     1,
   );
+});
+
+test("WhatsApp exige configuração e autorização, prévia funciona e envio diário não duplica", async () => {
+  const { queueDailySummary } = require("../dist/whatsapp/service");
+  const p = await pond();
+  const phone = `5585${String(Date.now()).slice(-9)}`;
+  const body = {
+    nome: `${prefix} contato`,
+    telefone: phone,
+    viveiroId: p.id,
+    autorizado: true,
+  };
+  assert.equal(
+    (
+      await request("/whatsapp/contatos", {
+        method: "POST",
+        cookie: employeeCookie,
+        body,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request("/whatsapp/contatos", {
+        method: "POST",
+        body: { ...body, autorizado: false },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("/whatsapp/contatos", { method: "POST", body })).status,
+    201,
+  );
+  const config = {
+    ativo: false,
+    horario: "18:00",
+    fuso: "America/Sao_Paulo",
+    nomeModelo: "resumo_diario",
+    idiomaModelo: "pt_BR",
+  };
+  assert.equal(
+    (await request("/whatsapp/config", { method: "PUT", body: config })).status,
+    200,
+  );
+  const preview = await request(
+    `/whatsapp/previa?dia=${yesterday}&viveiroId=${p.id}`,
+  );
+  assert.equal(preview.status, 200);
+  assert.equal(preview.body.conteudo.includes("CarciControl"), true);
+  await assert.rejects(
+    queueDailySummary(db, yesterday, {}),
+    (error) => error.status === 409,
+  );
+  assert.equal(
+    (
+      await request("/whatsapp/enviar", {
+        method: "POST",
+        body: { dia: yesterday },
+      })
+    ).status,
+    400,
+  );
+  const before = providerCalls;
+  const results = await Promise.all(
+    [1, 2].map(() =>
+      request("/whatsapp/enviar", {
+        method: "POST",
+        body: { dia: yesterday, confirmar: true },
+      }),
+    ),
+  );
+  assert.equal(
+    results.every((row) => row.status === 202),
+    true,
+  );
+  assert.equal(providerCalls - before, 1);
+  const history = await request("/whatsapp/envios");
+  assert.equal(history.body.envios[0].status, "ACEITO");
+  assert.equal(history.body.envios[0].tentativas, 1);
+  assert.equal(
+    (await request("/whatsapp/config")).body.integracao.configurado,
+    true,
+  );
+});
+test("webhook valida assinatura e confirmação de entrega não retrocede com eventos atrasados", async () => {
+  const job = await db.envioWhatsApp.findFirst({
+    where: { contato: { criadoPor: admin.id }, status: "ACEITO" },
+  });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const payload = (status) => ({
+    entry: [
+      {
+        changes: [
+          {
+            value: {
+              statuses: [
+                {
+                  id: job.mensagemProvedorId,
+                  status,
+                  timestamp,
+                  recipient_id: job.telefoneDestino,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  });
+  async function webhook(status, signed = true) {
+    const body = JSON.stringify(payload(status));
+    const signature = createHmac(
+      "sha256",
+      signed ? whatsappOptions.appSecret : "outro-segredo",
+    )
+      .update(body)
+      .digest("hex");
+    return fetch(base + "/whatsapp/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Hub-Signature-256": `sha256=${signature}`,
+      },
+      body,
+    });
+  }
+  assert.equal((await webhook("delivered", false)).status, 401);
+  assert.equal((await webhook("delivered")).status, 200);
+  assert.equal(
+    (await db.envioWhatsApp.findUnique({ where: { id: job.id } })).status,
+    "ENTREGUE",
+  );
+  assert.equal((await webhook("sent")).status, 200);
+  assert.equal(
+    (await db.envioWhatsApp.findUnique({ where: { id: job.id } })).status,
+    "ENTREGUE",
+  );
+  assert.equal((await webhook("read")).status, 200);
+  assert.equal(
+    (await db.envioWhatsApp.findUnique({ where: { id: job.id } })).status,
+    "LIDO",
+  );
+  const verify = await fetch(
+    base +
+      "/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=verificacao-local&hub.challenge=12345",
+  );
+  assert.equal(verify.status, 200);
+  assert.equal(await verify.text(), "12345");
+});
+test("timeout fica incerto e nunca é reenviado automaticamente", async () => {
+  const day = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+  providerMode = "timeout";
+  const before = providerCalls;
+  assert.equal(
+    (
+      await request("/whatsapp/enviar", {
+        method: "POST",
+        body: { dia: day, confirmar: true },
+      })
+    ).status,
+    202,
+  );
+  const job = (await request(`/whatsapp/envios?dia=${day}`)).body.envios[0];
+  assert.equal(job.status, "INCERTO");
+  assert.equal(
+    (
+      await request("/whatsapp/enviar", {
+        method: "POST",
+        body: { dia: day, confirmar: true },
+      })
+    ).status,
+    202,
+  );
+  assert.equal(providerCalls - before, 1);
+  assert.equal(
+    (
+      await request(`/whatsapp/envios/${job.id}/repetir`, {
+        method: "POST",
+        body: { confirmar: true },
+      })
+    ).status,
+    409,
+  );
+  providerMode = "ok";
+});
+
+test("agendamento usa o horário local e uma segunda execução não repete o resumo do dia", async () => {
+  const { tickDailySummary } = require("../dist/whatsapp/service");
+  const { DateTime } = require("luxon");
+  const day = DateTime.now().setZone("America/Sao_Paulo").toISODate();
+  await db.configResumoWhatsApp.update({
+    where: { id: 1 },
+    data: { ativo: true, horario: "18:00", fuso: "America/Sao_Paulo" },
+  });
+  const before = providerCalls;
+  await tickDailySummary(
+    scopedDb,
+    new Date(`${day}T20:59:00Z`),
+    whatsappOptions,
+  );
+  assert.equal(providerCalls, before);
+  await tickDailySummary(
+    scopedDb,
+    new Date(`${day}T21:00:00Z`),
+    whatsappOptions,
+  );
+  assert.equal(providerCalls, before + 1);
+  await tickDailySummary(
+    scopedDb,
+    new Date(`${day}T21:01:00Z`),
+    whatsappOptions,
+  );
+  assert.equal(providerCalls, before + 1);
 });

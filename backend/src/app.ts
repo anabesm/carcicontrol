@@ -15,6 +15,9 @@ import type { RecoveryOptions } from "./auth/recovery";
 import { createRotinasRouter } from "./rotinas/routes";
 import { createFaixasRouter } from "./faixas/routes";
 import { createRelatoriosRouter } from "./relatorios/routes";
+import { createWhatsAppRouter } from "./whatsapp/routes";
+import { createWhatsAppWebhook } from "./whatsapp/webhook";
+import type { WhatsAppOptions } from "./whatsapp/provider";
 
 export function createApp(
   checkDatabase: () => Promise<void>,
@@ -22,6 +25,7 @@ export function createApp(
     db: PrismaClient;
     session: SessionOptions;
     recovery?: RecoveryOptions;
+    whatsapp?: WhatsAppOptions;
   },
 ) {
   const app = express();
@@ -40,6 +44,12 @@ export function createApp(
     }
   });
 
+  if (auth)
+    app.use(
+      "/whatsapp/webhook",
+      express.raw({ type: "application/json", limit: "1mb" }),
+      createWhatsAppWebhook(auth.db, auth.whatsapp),
+    );
   app.use(express.json({ limit: "256kb" }));
 
   if (auth) {
@@ -54,6 +64,10 @@ export function createApp(
     app.use("/rotinas", createRotinasRouter(auth.db, auth.session));
     app.use("/faixas", createFaixasRouter(auth.db, auth.session));
     app.use("/relatorios", createRelatoriosRouter(auth.db, auth.session));
+    app.use(
+      "/whatsapp",
+      createWhatsAppRouter(auth.db, auth.session, auth.whatsapp),
+    );
   }
 
   app.use((_request, response) => {

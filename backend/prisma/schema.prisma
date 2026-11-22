@@ -118,6 +118,63 @@ model Viveiro {
   vendas           Venda[]
   eventos          EventoOperacional[]
   rotinas          RotinaMedicao[]
+  contatosWhatsApp ContatoWhatsApp[]
+}
+
+enum StatusEnvioWhatsApp {
+  PENDENTE
+  PROCESSANDO
+  ACEITO
+  ENVIADO
+  ENTREGUE
+  LIDO
+  FALHA
+  INCERTO
+}
+
+model ConfigResumoWhatsApp {
+  id Int @id @default(1)
+  ativo Boolean @default(false)
+  horario String @default("18:00") @db.VarChar(5)
+  fuso String @default("America/Sao_Paulo")
+  nomeModelo String?
+  idiomaModelo String @default("pt_BR")
+  atualizadoPor Int
+  atualizadoEm DateTime @updatedAt
+}
+
+model ContatoWhatsApp {
+  id Int @id @default(autoincrement())
+  nome String
+  telefone String @unique @db.VarChar(15)
+  viveiroId Int?
+  viveiro Viveiro? @relation(fields: [viveiroId], references: [id], onDelete: Restrict)
+  ativo Boolean @default(true)
+  autorizadoEm DateTime
+  criadoPor Int
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  envios EnvioWhatsApp[]
+}
+
+model EnvioWhatsApp {
+  id Int @id @default(autoincrement())
+  contatoId Int
+  contato ContatoWhatsApp @relation(fields: [contatoId], references: [id], onDelete: Restrict)
+  dia String @db.VarChar(10)
+  telefoneDestino String @db.VarChar(15)
+  conteudo String
+  origem String @default("AGENDADO")
+  status StatusEnvioWhatsApp @default(PENDENTE)
+  tentativas Int @default(0)
+  mensagemProvedorId String? @unique
+  erro String?
+  ultimoStatusEm DateTime?
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([contatoId, dia])
+  @@index([status, criadoEm])
 }
 
 model CicloCultivo {

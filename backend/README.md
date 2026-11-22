@@ -401,3 +401,26 @@ Amônia não ionizada (NH3, mg/L) pode ser acrescentada pelo administrador com
 `POST /faixas/parametros`, informando explicitamente limites de entrada e faixa
 ideal. Não há limites técnicos presumidos para esse parâmetro. Após configurar,
 ele fica disponível para medições, alertas, rotina e gráficos.
+
+## Resumo diário pelo WhatsApp
+
+A integração inicia desativada. Sem as variáveis `WHATSAPP_*`, a prévia do resumo
+funciona e a configuração informa quais campos faltam. Não há simulação de
+mensagem enviada na aplicação.
+
+Para ativar, prepare uma conta da WhatsApp Cloud API, um número emissor e um
+modelo aprovado com um parâmetro de texto no corpo. Configure as variáveis do
+`.env.example`, o nome e idioma do modelo na interface e destinatários autorizados.
+O resumo usa até 1000 caracteres, indica quando há mais registros e considera
+medições e ocorrências no fuso configurado. O processo da API precisa permanecer
+em execução para verificar o horário a cada minuto. Ao reiniciar, recupera o
+agendamento do dia e preserva a fila.
+
+Configure a URL pública HTTPS `/whatsapp/webhook` e o token de verificação na
+Meta. O webhook valida a assinatura SHA-256 com o segredo do aplicativo.
+`ACEITO` significa aceitação pela API do provedor. `ENVIADO`, `ENTREGUE` e `LIDO`
+dependem das notificações autenticadas recebidas. Timeout fica `INCERTO` e não
+é repetido automaticamente. O banco impede duplicidade por contato e dia.
+
+Referências: [coleção oficial da Meta para envio de modelos](https://www.postman.com/meta/whatsapp-business-platform/request/o65u5m5/send-message-template-text)
+e [assinatura de webhooks](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/).
