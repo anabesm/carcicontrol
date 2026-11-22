@@ -1069,3 +1069,66 @@ test("faixas por fase rejeitam sobreposição e preservam limites históricos ap
     409,
   );
 });
+
+test("compra com vários itens calcula centavos e edição mantém auditoria e controle de versão", async () => {
+  const p = await pond();
+  const body = expense(p, {
+    itens: [
+      {
+        categoria: "RACAO",
+        descricao: "Ração",
+        quantidade: 1.5,
+        unidade: "kg",
+        valorUnit: 10.15,
+      },
+      {
+        categoria: "ENERGIA",
+        descricao: "Energia",
+        quantidade: 3,
+        unidade: "kWh",
+        valorUnit: 0.1,
+      },
+    ],
+  });
+  const created = await request("/despesas", { method: "POST", body });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.despesa.valorTotal, 15.53);
+  assert.equal(created.body.despesa.versao, 1);
+  const route = `/despesas/${created.body.despesa.id}`;
+  const edit = {
+    ...body,
+    versao: 1,
+    statusPagamento: "PAGO",
+    itens: [{ ...body.itens[0], quantidade: 2 }],
+  };
+  assert.equal(
+    (
+      await request(route, {
+        method: "PUT",
+        cookie: employeeCookie,
+        body: edit,
+      })
+    ).status,
+    403,
+  );
+  const results = await Promise.all(
+    [1, 2].map(() => request(route, { method: "PUT", body: edit })),
+  );
+  assert.equal(results.filter((row) => row.status === 200).length, 1);
+  assert.equal(results.filter((row) => row.status === 409).length, 1);
+  const detail = (await request(route)).body.despesa;
+  assert.equal(detail.valorTotal, 20.3);
+  assert.equal(detail.versao, 2);
+  assert.equal(detail.historico.length, 1);
+  assert.equal(detail.historico[0].dadosAnteriores.valorTotal, 15.53);
+  assert.equal(detail.historico[0].dadosAnteriores.itens.length, 2);
+  assert.equal(
+    (
+      await request("/despesas", {
+        method: "POST",
+        body: { ...body, itens: [] },
+      })
+    ).status,
+    400,
+  );
+});

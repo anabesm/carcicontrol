@@ -375,3 +375,9 @@ a fase aplicável prevalece sobre a faixa padrão. Fases sobrepostas são recusa
 A API utiliza a data/hora efetiva da medição para escolher a fase. A edição
 desativa a versão antiga e cria outra, preservando os limites aplicados ao
 histórico. `GET /parametros` aceita `medidoEm` para consultar a faixa daquela data.
+
+Compras aceitam de 1 a 100 itens. Cada subtotal é arredondado para centavos e o
+total é a soma dos subtotais. `PUT /despesas/:id` recebe os dados completos e a
+`versao` consultada. Edições concorrentes com versão antiga retornam `409`.
+`GET /despesas/:id` inclui o histórico das versões anteriores e o responsável
+por cada alteração. A edição não apaga o histórico financeiro.

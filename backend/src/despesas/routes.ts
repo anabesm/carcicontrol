@@ -11,6 +11,7 @@ import {
   date,
   filters,
   id,
+  integer,
   number,
   optionalId,
   optionalText,
@@ -32,8 +33,12 @@ export function validateExpense(input: unknown) {
     "observacao",
     "itens",
   ]);
-  if (!Array.isArray(body.itens) || body.itens.length !== 1)
-    throw new HttpError(400, "Informe um item para a despesa.");
+  if (
+    !Array.isArray(body.itens) ||
+    body.itens.length < 1 ||
+    body.itens.length > 100
+  )
+    throw new HttpError(400, "Informe entre 1 e 100 itens para a compra.");
   const itens = body.itens.map((value) => {
     const item = bodyObject(value, [
       "categoria",
@@ -84,6 +89,11 @@ export function validateExpense(input: unknown) {
   const statusPagamento = body.statusPagamento ?? "PENDENTE";
   if (statusPagamento !== "PENDENTE" && statusPagamento !== "PAGO")
     throw new HttpError(400, "Situação do pagamento inválida.");
+  const valorTotal = itens
+    .reduce((sum, item) => sum.add(item.valorTotalItem), new Prisma.Decimal(0))
+    .toNumber();
+  if (valorTotal > 1_000_000_000)
+    throw new HttpError(400, "Total da compra fora do limite permitido.");
   return {
     viveiroId: optionalId(body.viveiroId),
     cicloId: optionalId(body.cicloId),
@@ -94,12 +104,7 @@ export function validateExpense(input: unknown) {
     statusPagamento,
     observacao: optionalText(body.observacao, "Observação", 2000),
     itens,
-    valorTotal: itens
-      .reduce(
-        (sum, item) => sum.add(item.valorTotalItem),
-        new Prisma.Decimal(0),
-      )
-      .toNumber(),
+    valorTotal,
   };
 }
 export function createDespesasRouter(
@@ -132,7 +137,11 @@ export function createDespesasRouter(
   router.get("/:id", async (request, response) => {
     const despesa = await db.compraDespesa.findUnique({
       where: { id: id(request.params.id) },
-      include: { itens: true, viveiro: { select: { identificador: true } } },
+      include: {
+        itens: true,
+        viveiro: { select: { identificador: true } },
+        historico: { orderBy: { id: "desc" } },
+      },
     });
     if (!despesa) throw new HttpError(404, "Despesa não encontrada.");
     response.json({ despesa });
@@ -157,6 +166,52 @@ export function createDespesasRouter(
       });
     });
     response.status(201).json({ despesa });
+  });
+  router.put("/:id", async (request, response) => {
+    const expenseId = id(request.params.id);
+    const { versao: rawVersion, ...values } = request.body ?? {};
+    const versao = integer(rawVersion, "Versão");
+    const { itens, ...input } = validateExpense(values);
+    const despesa = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "CompraDespesa" WHERE "id" = ${expenseId} FOR UPDATE`;
+      const previous = await tx.compraDespesa.findUnique({
+        where: { id: expenseId },
+        include: { itens: true },
+      });
+      if (!previous) throw new HttpError(404, "Despesa não encontrada.");
+      if (previous.versao !== versao)
+        throw new HttpError(
+          409,
+          "Esta compra foi alterada. Recarregue os dados antes de editar.",
+        );
+      const links = await validateLinks(
+        tx,
+        input.viveiroId,
+        input.cicloId,
+        input.data,
+      );
+      await tx.alteracaoDespesa.create({
+        data: {
+          compraId: expenseId,
+          usuarioId: request.auth!.usuario.id,
+          dadosAnteriores: JSON.parse(
+            JSON.stringify(previous),
+          ) as Prisma.InputJsonValue,
+        },
+      });
+      await tx.itemCompra.deleteMany({ where: { compraId: expenseId } });
+      return tx.compraDespesa.update({
+        where: { id: expenseId },
+        data: {
+          ...input,
+          ...links,
+          versao: { increment: 1 },
+          itens: { create: itens },
+        },
+        include: { itens: true },
+      });
+    });
+    response.json({ despesa });
   });
   return router;
 }

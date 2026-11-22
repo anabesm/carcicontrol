@@ -265,8 +265,22 @@ model CompraDespesa {
   observacao      String?
   criadoPor       Int
   criadoEm        DateTime      @default(now())
+  atualizadoEm    DateTime      @default(now()) @updatedAt
+  versao          Int           @default(1)
 
   itens ItemCompra[]
+  historico AlteracaoDespesa[]
+}
+
+model AlteracaoDespesa {
+  id Int @id @default(autoincrement())
+  compraId Int
+  compra CompraDespesa @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  dadosAnteriores Json
+  criadoEm DateTime @default(now())
+
+  @@index([compraId, criadoEm])
 }
 
 model ItemCompra {

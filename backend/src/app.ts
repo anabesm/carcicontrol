@@ -39,7 +39,7 @@ export function createApp(
     }
   });
 
-  app.use(express.json({ limit: "16kb" }));
+  app.use(express.json({ limit: "256kb" }));
 
   if (auth) {
     app.use("/auth", createAuthRouter(auth.db, auth.session, auth.recovery));
