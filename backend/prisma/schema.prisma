@@ -117,6 +117,7 @@ model Viveiro {
   despesas         CompraDespesa[]
   vendas           Venda[]
   eventos          EventoOperacional[]
+  rotinas          RotinaMedicao[]
 }
 
 model CicloCultivo {
@@ -158,6 +159,24 @@ model Parametro {
 
   faixas   FaixaParametro[]
   medicoes Medicao[]
+  rotinas RotinaMedicao[]
+}
+
+model RotinaMedicao {
+  id Int @id @default(autoincrement())
+  parametroId Int
+  parametro Parametro @relation(fields: [parametroId], references: [id], onDelete: Cascade)
+  viveiroId Int?
+  viveiro Viveiro? @relation(fields: [viveiroId], references: [id], onDelete: Cascade)
+  horario String @db.VarChar(5)
+  fuso String @default("America/Sao_Paulo")
+  toleranciaMinutos Int @default(60)
+  ativo Boolean @default(true)
+  criadoPor Int
+  criadoEm DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([parametroId, viveiroId, ativo])
 }
 
 model FaixaParametro {

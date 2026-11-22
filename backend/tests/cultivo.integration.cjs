@@ -847,3 +847,125 @@ test("tratamento de alerta exige administrador e justificativa e preserva o regi
     0,
   );
 });
+
+test("rotina respeita fuso, janela, ciclo ativo e impede horários sobrepostos", async () => {
+  const { pendingReadings } = require("../dist/rotinas/service");
+  const p = await pond();
+  const body = {
+    parametroId: parameter.id,
+    viveiroId: p.id,
+    horario: "06:00",
+    fuso: "America/Sao_Paulo",
+    toleranciaMinutos: 30,
+  };
+  assert.equal(
+    (
+      await request("/rotinas", {
+        method: "POST",
+        cookie: employeeCookie,
+        body,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request("/rotinas", {
+        method: "POST",
+        body: { ...body, fuso: "invalido" },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/rotinas", {
+        method: "POST",
+        body: { ...body, horario: "25:00" },
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("/rotinas", { method: "POST", body })).status,
+    201,
+  );
+  assert.equal(
+    (
+      await request("/rotinas", {
+        method: "POST",
+        body: { ...body, horario: "06:15" },
+      })
+    ).status,
+    409,
+  );
+  const simultaneous = await Promise.all(
+    [1, 2].map(() =>
+      request("/rotinas", {
+        method: "POST",
+        body: { ...body, horario: "18:00" },
+      }),
+    ),
+  );
+  assert.equal(simultaneous.filter((row) => row.status === 201).length, 1);
+  assert.equal(simultaneous.filter((row) => row.status === 409).length, 1);
+  const now = new Date(`${yesterday}T23:00:00Z`);
+  const before = await pendingReadings(
+    db,
+    { cicloId: String(p.cycle.id), data: yesterday },
+    now,
+  );
+  assert.equal(before.total, 2);
+  assert.equal(
+    (
+      await request("/medicoes", {
+        method: "POST",
+        body: {
+          cicloId: p.cycle.id,
+          parametroId: parameter.id,
+          valor: 6,
+          unidade: "mg/L",
+          medidoEm: `${yesterday}T09:00:00Z`,
+        },
+      })
+    ).status,
+    201,
+  );
+  const after = await pendingReadings(
+    db,
+    { cicloId: String(p.cycle.id), data: yesterday },
+    now,
+  );
+  assert.equal(after.total, 1);
+  assert.equal(
+    after.pendencias.filter((row) => row.situacao === "CONCLUIDA").length,
+    1,
+  );
+  const future = await pendingReadings(
+    db,
+    { cicloId: String(p.cycle.id), data: yesterday },
+    new Date(`${yesterday}T05:00:00Z`),
+  );
+  assert.equal(
+    future.pendencias.every((row) => row.situacao === "AGUARDANDO"),
+    true,
+  );
+  await request(`/viveiros/${p.id}/ciclos/${p.cycle.id}/encerramento`, {
+    method: "POST",
+    body: {
+      motivo: "PERDA_TOTAL",
+      dataEncerramento: closingTime,
+      justificativa: "Fim do teste de rotina",
+    },
+  });
+  assert.equal(
+    (
+      await pendingReadings(
+        db,
+        { cicloId: String(p.cycle.id), data: yesterday },
+        now,
+      )
+    ).pendencias.length,
+    0,
+  );
+});

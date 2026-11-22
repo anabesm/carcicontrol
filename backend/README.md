@@ -348,3 +348,17 @@ Para um serviço de e-mail real, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECUR
 `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` e `PUBLIC_APP_URL` no ambiente. Servidores
 externos exigem TLS. Nunca publique credenciais ou use a caixa local em produção.
 O transporte utiliza [SMTP com Nodemailer](https://nodemailer.com/smtp.html).
+
+## Rotina de medições
+
+`GET /rotinas` e `GET /rotinas/pendencias?data=AAAA-MM-DD` permitem consultar
+horários e pendências. Administradores usam `POST /rotinas`, `PUT /rotinas/:id`
+e `PATCH /rotinas/:id` com `ativo: false` para configurar ou desativar horários.
+
+O fuso padrão é `America/Sao_Paulo`. Cada horário tem uma janela de tolerância
+antes e depois do instante esperado. Janelas sobrepostas do mesmo parâmetro e
+viveiro são recusadas. Uma medição atende a apenas uma janela. A situação fica
+pendente somente depois do fim da janela. Horários específicos de um viveiro
+substituem os globais daquele parâmetro. As consultas consideram ciclos ativos
+e a configuração atual dos horários. Conversões de fuso usam
+[Luxon](https://moment.github.io/luxon/api-docs/index.html).
