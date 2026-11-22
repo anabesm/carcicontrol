@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -79,6 +80,19 @@ const emptyHistory = { medicoes: [], total: 0, limite: 10, offset: 0 }
 const emptyAlerts = { alertas: [], total: 0, limite: 10, offset: 0 }
 const mounted: VueWrapper[] = []
 beforeEach(() => {
+  setActivePinia(createPinia())
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    configurable: true,
+    value() {
+      this.open = false
+    },
+  })
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    configurable: true,
+    value() {
+      this.open = true
+    },
+  })
   vi.resetAllMocks()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-10-29T15:30:00.000Z'))

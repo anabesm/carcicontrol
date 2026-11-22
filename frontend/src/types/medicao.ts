@@ -46,6 +46,9 @@ export interface Alerta {
   gravidade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA'
   status: 'PENDENTE' | 'RESOLVIDO' | 'IGNORADO'
   observacao: string | null
+  observacaoResolucao?: string | null
+  resolvidoEm?: string | null
+  resolvidoPor?: { id: number; nome: string } | null
 }
 
 export interface Medicao {
