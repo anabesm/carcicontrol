@@ -5,8 +5,14 @@ import BaseAlert from '@/components/ui/BaseAlert.vue'
 import { viveirosApi } from '@/services/viveiros'
 import type { Viveiro, CicloCultivo } from '@/types/viveiro'
 const props = withDefaults(
-  defineProps<{ required?: boolean; disabled?: boolean; form?: boolean }>(),
-  { required: false, disabled: false, form: false },
+  defineProps<{
+    required?: boolean
+    disabled?: boolean
+    form?: boolean
+    hideCycle?: boolean
+    globalLabel?: string
+  }>(),
+  { required: false, disabled: false, form: false, hideCycle: false },
 )
 const viveiroId = defineModel<string>('viveiroId', { default: '' })
 const cicloId = defineModel<string>('cicloId', { default: '' })
@@ -18,7 +24,7 @@ let revision = 0
 async function loadCycles() {
   const current = ++revision
   cycles.value = []
-  if (!viveiroId.value) return
+  if (!viveiroId.value || props.hideCycle) return
   loading.value = true
   try {
     const result = await viveirosApi.detail(viveiroId.value)
@@ -55,13 +61,18 @@ onMounted(async () => {
       :disabled="disabled"
     >
       <option value="">
-        {{ required ? 'Selecione o viveiro' : form ? 'Despesa geral' : 'Todos os viveiros' }}
+        {{
+          required
+            ? 'Selecione o viveiro'
+            : globalLabel || (form ? 'Despesa geral' : 'Todos os viveiros')
+        }}
       </option>
       <option v-for="pond in ponds" :key="pond.id" :value="String(pond.id)">
         {{ pond.identificador }}
       </option>
     </BaseSelect>
     <BaseSelect
+      v-if="!hideCycle"
       v-model="cicloId"
       label="Ciclo"
       name="cicloId"

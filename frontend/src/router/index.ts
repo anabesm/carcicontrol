@@ -99,6 +99,12 @@ export function createAppRouter(
             meta: { title: 'Vendas', adminOnly: true },
           },
           {
+            path: '/rotina',
+            name: 'rotina',
+            component: () => import('@/views/RotinasView.vue'),
+            meta: { title: 'Rotina de medições' },
+          },
+          {
             path: '/eventos',
             name: 'eventos',
             component: () => import('@/views/EventosView.vue'),
