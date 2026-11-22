@@ -22,7 +22,9 @@ export const parametroConfigSelect = {
     },
   },
 } satisfies Prisma.ParametroSelect;
-export type ParametroConfig = Prisma.ParametroGetPayload<{ select: typeof parametroConfigSelect }>;
+export type ParametroConfig = Prisma.ParametroGetPayload<{
+  select: typeof parametroConfigSelect;
+}>;
 export type FaixaConfig = ParametroConfig["faixas"][number];
 
 export const alertaBaseSelect = {
@@ -33,6 +35,9 @@ export const alertaBaseSelect = {
   gravidade: true,
   status: true,
   observacao: true,
+  observacaoResolucao: true,
+  resolvidoEm: true,
+  resolvidoPor: { select: { id: true, nome: true } },
 } satisfies Prisma.AlertaSelect;
 
 export const medicaoBaseSelect = {
@@ -49,7 +54,11 @@ export const medicaoBaseSelect = {
   parametro: { select: { id: true, codigo: true, nome: true } },
   registradoPor: { select: { id: true, nome: true } },
   ciclo: {
-    select: { id: true, status: true, viveiro: { select: { id: true, identificador: true } } },
+    select: {
+      id: true,
+      status: true,
+      viveiro: { select: { id: true, identificador: true } },
+    },
   },
 } satisfies Prisma.MedicaoSelect;
 
@@ -57,11 +66,18 @@ export const medicaoPublicSelect = {
   ...medicaoBaseSelect,
   alertas: { select: alertaBaseSelect, orderBy: { id: "asc" } },
 } satisfies Prisma.MedicaoSelect;
-type MedicaoBase = Prisma.MedicaoGetPayload<{ select: typeof medicaoBaseSelect }>;
+type MedicaoBase = Prisma.MedicaoGetPayload<{
+  select: typeof medicaoBaseSelect;
+}>;
 
 export function publicMedicao<T extends MedicaoBase>(row: T) {
-  const { faixaParametroId, minIdealAplicado, maxIdealAplicado, faixaDemonstrativa, ...medicao } =
-    row;
+  const {
+    faixaParametroId,
+    minIdealAplicado,
+    maxIdealAplicado,
+    faixaDemonstrativa,
+    ...medicao
+  } = row;
   return {
     ...medicao,
     faixaAplicada:

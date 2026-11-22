@@ -1,15 +1,34 @@
 import type { PrismaClient } from "@prisma/client";
 import { Router } from "express";
-import { requireAuthentication } from "../auth/middleware";
+import {
+  requireAdministrator,
+  requireAuthentication,
+} from "../auth/middleware";
 import type { SessionOptions } from "../auth/session";
-import { listAlertas, listMedicoes, listParameters, recordMedicao } from "./service";
+import {
+  listAlertas,
+  listMedicoes,
+  listParameters,
+  recordMedicao,
+} from "./service";
 import { catalogCycle, historyQuery, validateNewMedicao } from "./validation";
+import { bodyObject, id, text } from "../lib/input";
+import { HttpError } from "../lib/http-error";
+import { alertaBaseSelect } from "./selects";
 
-export function createMedicoesRouter(db: PrismaClient, options: SessionOptions) {
+export function createMedicoesRouter(
+  db: PrismaClient,
+  options: SessionOptions,
+) {
   const router = Router();
-  router.use(["/parametros", "/medicoes", "/alertas"], requireAuthentication(db, options));
+  router.use(
+    ["/parametros", "/medicoes", "/alertas"],
+    requireAuthentication(db, options),
+  );
   router.get("/parametros", async (request, response) => {
-    response.json({ parametros: await listParameters(db, catalogCycle(request.query)) });
+    response.json({
+      parametros: await listParameters(db, catalogCycle(request.query)),
+    });
   });
   router.get("/medicoes", async (request, response) => {
     response.json(await listMedicoes(db, historyQuery(request.query)));
@@ -22,5 +41,45 @@ export function createMedicoesRouter(db: PrismaClient, options: SessionOptions) 
   router.get("/alertas", async (request, response) => {
     response.json(await listAlertas(db, historyQuery(request.query, true)));
   });
+  router.patch(
+    "/alertas/:id",
+    requireAdministrator,
+    async (request, response) => {
+      const alertId = id(request.params.id);
+      const body = bodyObject(request.body, ["status", "observacao"]);
+      if (body.status !== "RESOLVIDO" && body.status !== "IGNORADO")
+        throw new HttpError(400, "Selecione resolvido ou ignorado.");
+      const observacaoResolucao = text(body.observacao, "Justificativa", 2000);
+      const alerta = await db.$transaction(async (tx) => {
+        const changed = await tx.alerta.updateMany({
+          where: { id: alertId, status: "PENDENTE" },
+          data: {
+            status: body.status as "RESOLVIDO" | "IGNORADO",
+            observacaoResolucao,
+            resolvidoPorId: request.auth!.usuario.id,
+            resolvidoEm: new Date(),
+          },
+        });
+        if (changed.count !== 1) {
+          if (
+            !(await tx.alerta.findUnique({
+              where: { id: alertId },
+              select: { id: true },
+            }))
+          )
+            throw new HttpError(404, "Alerta não encontrado.");
+          throw new HttpError(
+            409,
+            "Este alerta já foi tratado. Atualize o histórico.",
+          );
+        }
+        return tx.alerta.findUniqueOrThrow({
+          where: { id: alertId },
+          select: alertaBaseSelect,
+        });
+      });
+      response.json({ alerta });
+    },
+  );
   return router;
 }

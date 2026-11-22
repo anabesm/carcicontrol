@@ -222,6 +222,7 @@ model Alerta {
   resolvidoPorId Int?
   resolvidoPor   Usuario?        @relation("ResolvidoPor", fields: [resolvidoPorId], references: [id])
   resolvidoEm    DateTime?
+  observacaoResolucao String?
 
   @@index([medicaoId])
   @@index([status, dataHora, id])

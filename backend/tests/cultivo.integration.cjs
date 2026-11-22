@@ -791,3 +791,59 @@ test("manutenção de viveiros mantém histórico e bloqueia inativação durant
     200,
   );
 });
+
+test("tratamento de alerta exige administrador e justificativa e preserva o registro original", async () => {
+  const p = await pond();
+  const row = await request("/medicoes", {
+    method: "POST",
+    body: {
+      cicloId: p.cycle.id,
+      parametroId: parameter.id,
+      unidade: "mg/L",
+      valor: 4,
+      medidoEm: occurred,
+      confirmarAnomalia: true,
+    },
+  });
+  const alert = row.body.medicao.alertas[0];
+  assert.equal(
+    (
+      await request(`/alertas/${alert.id}`, {
+        method: "PATCH",
+        cookie: employeeCookie,
+        body: { status: "RESOLVIDO", observacao: "Aerador ajustado" },
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(`/alertas/${alert.id}`, {
+        method: "PATCH",
+        body: { status: "RESOLVIDO", observacao: "" },
+      })
+    ).status,
+    400,
+  );
+  const results = await Promise.all(
+    ["RESOLVIDO", "IGNORADO"].map((status) =>
+      request(`/alertas/${alert.id}`, {
+        method: "PATCH",
+        body: { status, observacao: "Aerador ajustado e leitura conferida" },
+      }),
+    ),
+  );
+  assert.equal(results.filter((row) => row.status === 200).length, 1);
+  assert.equal(results.filter((row) => row.status === 409).length, 1);
+  const stored = await db.alerta.findUnique({ where: { id: alert.id } });
+  assert.equal(stored.resolvidoPorId, admin.id);
+  assert.equal(stored.valorMedido, 4);
+  assert.equal(stored.limiteViolado, alert.limiteViolado);
+  assert.equal(stored.observacao, alert.observacao);
+  assert.ok(stored.resolvidoEm);
+  assert.equal(
+    (await request(`/indicadores/resumo?cicloId=${p.cycle.id}`)).body
+      .alertasPendentes,
+    0,
+  );
+});
