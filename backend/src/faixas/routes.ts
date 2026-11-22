@@ -1,11 +1,11 @@
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import {
   requireAdministrator,
   requireAuthentication,
 } from "../auth/middleware";
 import type { SessionOptions } from "../auth/session";
-import { bodyObject, id } from "../lib/input";
+import { bodyObject, id, number } from "../lib/input";
 import { HttpError } from "../lib/http-error";
 import { supportedCodes } from "../medicoes/definitions";
 import { saveRange, validateRange } from "./service";
@@ -28,6 +28,67 @@ export function createFaixasRouter(db: PrismaClient, options: SessionOptions) {
       }),
     }),
   );
+  router.post("/parametros", async (request, response) => {
+    const body = bodyObject(request.body, [
+      "codigo",
+      "minPossivel",
+      "maxPossivel",
+      "minIdeal",
+      "maxIdeal",
+      "demonstrativa",
+    ]);
+    if (body.codigo !== "NH3")
+      throw new HttpError(
+        400,
+        "O parâmetro adicional disponível é amônia não ionizada (NH3).",
+      );
+    const minPossivel = number(body.minPossivel, "Mínimo de entrada", 0),
+      maxPossivel = number(body.maxPossivel, "Máximo de entrada", 0);
+    const minIdeal = number(body.minIdeal, "Mínimo ideal", 0),
+      maxIdeal = number(body.maxIdeal, "Máximo ideal", 0);
+    if (
+      minPossivel >= maxPossivel ||
+      minIdeal < minPossivel ||
+      maxIdeal > maxPossivel ||
+      minIdeal > maxIdeal ||
+      typeof body.demonstrativa !== "boolean"
+    )
+      throw new HttpError(
+        400,
+        "Informe limites coerentes e identifique se a faixa é demonstrativa.",
+      );
+    try {
+      const parametro = await db.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(9172630)`;
+        return tx.parametro.create({
+          data: {
+            codigo: "NH3",
+            nome: "Amônia não ionizada",
+            unidadePadrao: "mg/L",
+            minPossivel,
+            maxPossivel,
+            faixas: {
+              create: {
+                minIdeal,
+                maxIdeal,
+                demonstrativa: body.demonstrativa as boolean,
+                criadoPor: request.auth!.usuario.id,
+              },
+            },
+          },
+          select: { id: true, codigo: true, nome: true, unidadePadrao: true },
+        });
+      });
+      response.status(201).json({ parametro });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      )
+        throw new HttpError(409, "O parâmetro NH3 já foi cadastrado.");
+      throw error;
+    }
+  });
   router.get("/", async (_request, response) =>
     response.json({
       faixas: await db.faixaParametro.findMany({

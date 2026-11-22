@@ -134,6 +134,7 @@ model CicloCultivo {
   motivoEncerramento MotivoEncerramento?
   observacaoEncerramento String?
   quantidadeFinal Int?
+  areaPovoamentoM2 Float?
   criadoPor        Int
   criadoEm         DateTime    @default(now())
   atualizadoEm     DateTime    @updatedAt

@@ -13,6 +13,7 @@ export const cicloPublicoSelect = {
   motivoEncerramento: true,
   observacaoEncerramento: true,
   quantidadeFinal: true,
+  areaPovoamentoM2: true,
   criadoPor: true,
   criadoEm: true,
   atualizadoEm: true,

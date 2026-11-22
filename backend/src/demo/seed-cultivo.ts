@@ -14,8 +14,14 @@ export async function seedDemoCultivo(db: PrismaClient, adminId: number) {
     select: parametroConfigSelect,
   });
   let created = 0;
-  for (const mode of ["ATIVO", "VENDA", "PERDA_TOTAL"] as const) {
-    const identificador = `DEMO - ${mode === "ATIVO" ? "Cultivo ativo" : mode === "VENDA" ? "Despesca com venda" : "Perda total"}`;
+  for (const entry of [
+    { mode: "ATIVO", name: "Cultivo ativo" },
+    { mode: "VENDA", name: "Despesca com venda" },
+    { mode: "PERDA_TOTAL", name: "Perda total" },
+    { mode: "VENDA", name: "Produção com indicadores" },
+  ] as const) {
+    const mode = entry.mode;
+    const identificador = `DEMO - ${entry.name}`;
     const wasCreated = await db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(9172610)`;
       if (
@@ -51,6 +57,7 @@ export async function seedDemoCultivo(db: PrismaClient, adminId: number) {
           criadoPor: adminId,
           dataInicio,
           qtdLarvasInicial: 100000,
+          areaPovoamentoM2: viveiro.area,
           fornecedorLarvas: "Fornecedor fictício",
           status: mode === "ATIVO" ? "ATIVO" : "FINALIZADO",
           dataEncerramento,
@@ -177,5 +184,5 @@ export async function seedDemoCultivo(db: PrismaClient, adminId: number) {
     });
     if (wasCreated) created++;
   }
-  return { created, preserved: 3 - created };
+  return { created, preserved: 4 - created };
 }

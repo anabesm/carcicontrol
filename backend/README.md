@@ -329,7 +329,7 @@ lucro líquido.
 ## Dados fictícios e teste completo
 
 Após preparar o administrador e os parâmetros, `npm run db:seed:cultivo` cria
-três viveiros `DEMO` com exemplos de cultivo ativo, venda e perda. Não altera
+quatro viveiros `DEMO` com exemplos de cultivo ativo, venda, perda e indicadores. Não altera
 registros existentes e não executa automaticamente ao iniciar a API.
 
 `npm run test:integration` usa exclusivamente `TEST_DATABASE_URL`, cujo banco
@@ -381,3 +381,23 @@ total é a soma dos subtotais. `PUT /despesas/:id` recebe os dados completos e a
 `versao` consultada. Edições concorrentes com versão antiga retornam `409`.
 `GET /despesas/:id` inclui o histórico das versões anteriores e o responsável
 por cada alteração. A edição não apaga o histórico financeiro.
+
+## Relatórios de produção
+
+`GET /relatorios` permite filtrar por período, viveiro e ciclo. Retorna custos por
+categoria, receitas e despesas por dia e indicadores por ciclo. Custos de um
+ciclo consideram todos os lançamentos daquele ciclo, enquanto o resumo financeiro
+e as categorias usam o período selecionado. O CSV de `/relatorios/csv` exporta a
+página consultada, com `limite` e `offset`.
+
+Produtividade usa kg/ha e a área registrada no povoamento. Sobrevivência usa a
+quantidade final informada dividida pelo povoamento inicial. Custo registrado/kg
+usa as despesas cadastradas e o peso final. Esses valores não pressupõem que
+todos os custos foram registrados. Campos ausentes retornam `null` com motivos,
+em vez de zero ou estimativas. A área histórica de ciclos anteriores à inclusão
+desse registro não é preenchida automaticamente.
+
+Amônia não ionizada (NH3, mg/L) pode ser acrescentada pelo administrador com
+`POST /faixas/parametros`, informando explicitamente limites de entrada e faixa
+ideal. Não há limites técnicos presumidos para esse parâmetro. Após configurar,
+ele fica disponível para medições, alertas, rotina e gráficos.

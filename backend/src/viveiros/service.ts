@@ -14,7 +14,11 @@ export async function openCycle(
     return await db.$transaction(async (tx) => {
       // A atualização condicional disputa a linha do viveiro entre solicitações concorrentes.
       const claimed = await tx.viveiro.updateMany({
-        where: { id: viveiroId, status: "DISPONIVEL", ciclos: { none: { status: "ATIVO" } } },
+        where: {
+          id: viveiroId,
+          status: "DISPONIVEL",
+          ciclos: { none: { status: "ATIVO" } },
+        },
         data: { status: "OCUPADO" },
       });
       if (claimed.count !== 1) {
@@ -23,15 +27,31 @@ export async function openCycle(
           select: { id: true },
         });
         if (!exists) throw new HttpError(404, "Viveiro não encontrado.");
-        throw new HttpError(409, "O viveiro não está disponível ou já possui um ciclo ativo.");
+        throw new HttpError(
+          409,
+          "O viveiro não está disponível ou já possui um ciclo ativo.",
+        );
       }
+      const pond = await tx.viveiro.findUniqueOrThrow({
+        where: { id: viveiroId },
+        select: { area: true },
+      });
       return tx.cicloCultivo.create({
-        data: { ...input, viveiroId, criadoPor, status: "ATIVO" },
+        data: {
+          ...input,
+          viveiroId,
+          criadoPor,
+          status: "ATIVO",
+          areaPovoamentoM2: pond.area,
+        },
         select: cicloPublicoSelect,
       });
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new HttpError(409, "O viveiro já possui um ciclo ativo.");
     }
     throw error;

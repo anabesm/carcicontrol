@@ -38,4 +38,7 @@ export const demoParameters = [
   },
 ] as const;
 
-export const supportedCodes = demoParameters.map((parameter) => parameter.codigo);
+export const supportedCodes: string[] = [
+  ...demoParameters.map((parameter) => parameter.codigo),
+  "NH3",
+];

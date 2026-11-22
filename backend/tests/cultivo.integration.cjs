@@ -1132,3 +1132,110 @@ test("compra com vários itens calcula centavos e edição mantém auditoria e c
     400,
   );
 });
+
+test("relatório calcula indicadores de produção com área histórica e distingue dados ausentes", async () => {
+  const p = await pond();
+  await request("/despesas", { method: "POST", body: expense(p) });
+  await request(`/viveiros/${p.id}`, { method: "PATCH", body: { area: 5000 } });
+  await request(`/viveiros/${p.id}/ciclos/${p.cycle.id}/encerramento`, {
+    method: "POST",
+    body: closing(),
+  });
+  assert.equal(
+    (await request("/relatorios", { cookie: employeeCookie })).status,
+    403,
+  );
+  const report = await request(`/relatorios?cicloId=${p.cycle.id}`);
+  assert.equal(report.status, 200);
+  const row = report.body.ciclos[0];
+  assert.equal(row.areaPovoamentoM2, 10000);
+  assert.equal(row.produtividadeKgHa, 2000);
+  assert.equal(row.sobrevivenciaPercentual, 80);
+  assert.equal(row.pesoMedioFinalG, 25);
+  assert.equal(row.custoRegistradoPorKg, 0.0152);
+  assert.equal(row.saldoRegistrado, 50269.55);
+  assert.equal(report.body.custosPorCategoria[0].valor, 30.45);
+  assert.equal(
+    report.body.financeiroPorDia.reduce((sum, item) => sum + item.receitas, 0),
+    50300,
+  );
+  const other = await pond();
+  const incomplete = (await request(`/relatorios?cicloId=${other.cycle.id}`))
+    .body.ciclos[0];
+  assert.equal(incomplete.sobrevivenciaPercentual, null);
+  assert.equal(incomplete.produtividadeKgHa, null);
+  assert.ok(incomplete.dadosFaltantes.length);
+});
+test("amônia pode ser configurada explicitamente e segue as mesmas regras de medição", async () => {
+  if (await db.parametro.findUnique({ where: { codigo: "NH3" } })) return;
+  const body = {
+    codigo: "NH3",
+    minPossivel: 0,
+    maxPossivel: 10,
+    minIdeal: 0,
+    maxIdeal: 0.1,
+    demonstrativa: true,
+  };
+  assert.equal(
+    (
+      await request("/faixas/parametros", {
+        method: "POST",
+        cookie: employeeCookie,
+        body,
+      })
+    ).status,
+    403,
+  );
+  const created = await request("/faixas/parametros", { method: "POST", body });
+  assert.equal(created.status, 201);
+  paramIds.push(created.body.parametro.id);
+  const ranges = await db.faixaParametro.findMany({
+    where: { parametroId: created.body.parametro.id },
+    select: { id: true },
+  });
+  rangeIds.push(...ranges.map((row) => row.id));
+  assert.equal(
+    (await request("/faixas/parametros", { method: "POST", body })).status,
+    409,
+  );
+  const p = await pond();
+  assert.equal(
+    (
+      await request("/medicoes", {
+        method: "POST",
+        body: {
+          cicloId: p.cycle.id,
+          parametroId: created.body.parametro.id,
+          valor: 0.2,
+          unidade: "mg/L",
+          medidoEm: occurred,
+        },
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await request("/medicoes", {
+        method: "POST",
+        body: {
+          cicloId: p.cycle.id,
+          parametroId: created.body.parametro.id,
+          valor: 0.2,
+          unidade: "mg/L",
+          medidoEm: occurred,
+          confirmarAnomalia: true,
+        },
+      })
+    ).status,
+    201,
+  );
+  assert.equal(
+    (
+      await request(
+        `/indicadores/evolucao?cicloId=${p.cycle.id}&parametroId=${created.body.parametro.id}`,
+      )
+    ).body.medicoes.length,
+    1,
+  );
+});

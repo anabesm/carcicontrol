@@ -36,5 +36,6 @@ Para acrescentar exemplos fictícios de cultivo, execute explicitamente na pasta
 npm run db:seed:cultivo
 ```
 
-O comando cria três viveiros identificados por `DEMO`, com cultivo ativo, venda
-e perda total. Uma nova execução preserva os exemplos e todos os dados existentes.
+O comando cria quatro viveiros identificados por `DEMO`, com cultivo ativo, venda,
+perda total e um exemplo com dados para indicadores de produção. Uma nova execução
+preserva os exemplos e todos os dados existentes.
