@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { apiRequest } from '@/services/api'
 import { rotinasApi, type Rotina } from '@/services/rotinas'
-import type { Parametro } from '@/types/medicao'
+import type { ParametroConfiguravel } from '@/services/faixas'
 import { useAuthStore } from '@/stores/auth'
 import { useResource } from '@/composables/useResource'
 import { dateTime, queryString, today } from '@/utils/records'
@@ -22,7 +22,7 @@ const form = reactive({
   fuso: 'America/Sao_Paulo',
   toleranciaMinutos: '60',
 })
-const parameters = ref<Parametro[]>([])
+const parameters = ref<ParametroConfiguravel[]>([])
 const routines = ref<Rotina[]>([])
 const editId = ref<number>()
 const showingForm = ref(false),
@@ -38,7 +38,7 @@ const {
 async function loadConfig() {
   try {
     const [catalog, list] = await Promise.all([
-      apiRequest<{ parametros: Parametro[] }>('/parametros'),
+      apiRequest<{ parametros: ParametroConfiguravel[] }>('/parametros/catalogo'),
       rotinasApi.list(),
     ])
     parameters.value = catalog.parametros

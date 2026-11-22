@@ -38,22 +38,28 @@ const parameter = computed(() =>
 const locked = computed(() => submitting.value || !!pending.value)
 watch(locked, (value) => emit('busy', value))
 let mounted = true
+let loadVersion = 0
 onBeforeUnmount(() => {
   mounted = false
 })
 
-async function load() {
+async function load(useTime = false) {
+  const version = ++loadVersion
   loading.value = true
   loadError.value = ''
   try {
-    const result = await medicoesApi.parameters(props.ciclo.id)
-    if (mounted) parameters.value = result.parametros
+    const timestamp = measurementTimestamp(form.medidoEm)
+    const result =
+      useTime && timestamp
+        ? await medicoesApi.parameters(props.ciclo.id, timestamp)
+        : await medicoesApi.parameters(props.ciclo.id)
+    if (mounted && version === loadVersion) parameters.value = result.parametros
   } catch (error) {
-    if (mounted && !(error instanceof ApiError && error.status === 401))
+    if (mounted && version === loadVersion && !(error instanceof ApiError && error.status === 401))
       loadError.value =
         error instanceof Error ? error.message : 'Não foi possível carregar os parâmetros.'
   } finally {
-    if (mounted) loading.value = false
+    if (mounted && version === loadVersion) loading.value = false
   }
 }
 onMounted(load)
@@ -250,6 +256,7 @@ async function confirm() {
             v-model="form.medidoEm"
             label="Data e hora da medição"
             name="medidoEm"
+            @change="load(true)"
             type="datetime-local"
             min="0001-01-01T00:00"
             max="9999-12-31T23:59"

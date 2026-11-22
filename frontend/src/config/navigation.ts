@@ -8,6 +8,7 @@ import {
   Wallet,
   ShoppingBag,
   Clock,
+  SlidersHorizontal,
 } from '@lucide/vue'
 
 export interface Section {
@@ -19,6 +20,13 @@ export interface Section {
 }
 
 export const sections: Section[] = [
+  {
+    path: '/faixas',
+    name: 'Parâmetros',
+    title: 'Faixas de parâmetros',
+    icon: SlidersHorizontal,
+    adminOnly: true,
+  },
   { path: '/rotina', name: 'Rotina', title: 'Rotina de medições', icon: Clock },
   { path: '/eventos', name: 'Ocorrências', title: 'Ocorrências', icon: ClipboardList },
   { path: '/despesas', name: 'Despesas', title: 'Despesas', icon: Wallet, adminOnly: true },

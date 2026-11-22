@@ -12,8 +12,10 @@ function historyQuery(cicloId: number, offset: number) {
 }
 
 export const medicoesApi = {
-  parameters: (cicloId: number) =>
-    apiRequest<{ parametros: Parametro[] }>(`/parametros?cicloId=${cicloId}`),
+  parameters: (cicloId: number, medidoEm?: string) =>
+    apiRequest<{ parametros: Parametro[] }>(
+      `/parametros?cicloId=${cicloId}${medidoEm ? `&medidoEm=${encodeURIComponent(medidoEm)}` : ''}`,
+    ),
   list: (cicloId: number, offset = 0) =>
     apiRequest<PaginaMedicoes>(`/medicoes?${historyQuery(cicloId, offset)}`),
   alerts: (cicloId: number, offset = 0, status = '') =>

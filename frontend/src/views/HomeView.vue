@@ -5,7 +5,7 @@ import { apiRequest } from '@/services/api'
 import { useResource } from '@/composables/useResource'
 import { useAuthStore } from '@/stores/auth'
 import { currency, queryString } from '@/utils/records'
-import type { Parametro } from '@/types/medicao'
+import type { ParametroConfiguravel } from '@/services/faixas'
 import CultivoFilter from '@/components/records/CultivoFilter.vue'
 import MeasurementChart from '@/components/medicoes/MeasurementChart.vue'
 import BaseField from '@/components/ui/BaseField.vue'
@@ -15,7 +15,7 @@ import BaseLoading from '@/components/ui/BaseLoading.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 const auth = useAuthStore()
 const filter = reactive({ viveiroId: '', cicloId: '', inicio: '', fim: '' })
-const parameters = ref<Parametro[]>([])
+const parameters = ref<ParametroConfiguravel[]>([])
 const parametroId = ref('')
 const catalogError = ref('')
 const summary = useResource(
@@ -37,7 +37,9 @@ watch([() => filter.cicloId, parametroId], () => {
 onMounted(async () => {
   void summary.load()
   try {
-    parameters.value = (await apiRequest<{ parametros: Parametro[] }>('/parametros')).parametros
+    parameters.value = (
+      await apiRequest<{ parametros: ParametroConfiguravel[] }>('/parametros/catalogo')
+    ).parametros
     parametroId.value = String(parameters.value[0]?.id ?? '')
   } catch (cause) {
     catalogError.value =

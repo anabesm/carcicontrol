@@ -105,6 +105,12 @@ export function createAppRouter(
             meta: { title: 'Rotina de medições' },
           },
           {
+            path: '/faixas',
+            name: 'faixas',
+            component: () => import('@/views/FaixasView.vue'),
+            meta: { title: 'Faixas de parâmetros', adminOnly: true },
+          },
+          {
             path: '/eventos',
             name: 'eventos',
             component: () => import('@/views/EventosView.vue'),

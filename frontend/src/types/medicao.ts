@@ -6,6 +6,9 @@ export interface FaixaIdeal {
   maxIdeal: number
   demonstrativa: boolean
   descricao: string | null
+  faseNome?: string | null
+  diaInicial?: number
+  diaFinal?: number | null
 }
 
 export interface Parametro {
