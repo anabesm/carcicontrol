@@ -117,6 +117,12 @@ export function createAppRouter(
             meta: { title: 'Relatórios', adminOnly: true },
           },
           {
+            path: '/whatsapp',
+            name: 'whatsapp',
+            component: () => import('@/views/WhatsAppView.vue'),
+            meta: { title: 'Resumo pelo WhatsApp', adminOnly: true },
+          },
+          {
             path: '/eventos',
             name: 'eventos',
             component: () => import('@/views/EventosView.vue'),

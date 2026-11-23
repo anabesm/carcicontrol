@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { CircleHelp, ChevronRight, House, LogOut } from '@lucide/vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { CircleHelp, ChevronRight, House, LogOut, Menu, X } from '@lucide/vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNavigation } from '@/composables/useNavigation'
 import { useAuthStore } from '@/stores/auth'
@@ -14,6 +14,24 @@ const auth = useAuthStore()
 const { visibleNavigation: navigation } = useNavigation()
 const signingOut = ref(false)
 const logoutError = ref('')
+const primaryPaths = ['/', '/viveiros', '/medicoes', '/eventos']
+const primaryNavigation = computed(() =>
+  navigation.value.filter((item) => primaryPaths.includes(item.path)),
+)
+const moreNavigation = computed(() =>
+  navigation.value.filter((item) => !primaryPaths.includes(item.path)),
+)
+const moreMenu = ref<HTMLDialogElement>()
+const menuOpen = ref(false)
+function openMenu() {
+  moreMenu.value?.showModal()
+  menuOpen.value = true
+}
+function closeMenu() {
+  if (moreMenu.value?.open) moreMenu.value.close()
+  menuOpen.value = false
+}
+onBeforeUnmount(closeMenu)
 const isSectionActive = (path: string) =>
   path === '/' ? route.path === '/' : route.path === path || route.path.startsWith(`${path}/`)
 const initials = computed(() =>
@@ -111,13 +129,9 @@ async function logout() {
       </footer>
     </div>
 
-    <nav
-      class="mobile-nav"
-      :style="{ gridTemplateColumns: `repeat(${navigation.length}, minmax(0, 1fr))` }"
-      aria-label="Navegação principal no celular"
-    >
+    <nav class="mobile-nav" aria-label="Navegação principal no celular">
       <RouterLink
-        v-for="item in navigation"
+        v-for="item in primaryNavigation"
         :key="item.path"
         :to="item.path"
         class="mobile-nav-item"
@@ -130,6 +144,48 @@ async function logout() {
         /></span>
         <span>{{ item.mobileName }}</span>
       </RouterLink>
+      <button
+        type="button"
+        class="mobile-nav-item"
+        :class="{ 'is-active': moreNavigation.some((item) => isSectionActive(item.path)) }"
+        aria-haspopup="dialog"
+        :aria-expanded="menuOpen"
+        aria-controls="more-navigation"
+        @click="openMenu"
+      >
+        <span class="mobile-nav-icon"><Menu :size="21" :stroke-width="1.8" /></span>
+        <span>Mais</span>
+      </button>
     </nav>
+    <dialog
+      id="more-navigation"
+      ref="moreMenu"
+      class="navigation-dialog"
+      aria-labelledby="more-navigation-title"
+      @close="menuOpen = false"
+    >
+      <div class="navigation-dialog-heading">
+        <h2 id="more-navigation-title">Menu</h2>
+        <BaseButton variant="ghost" aria-label="Fechar menu" @click="closeMenu"
+          ><X :size="20"
+        /></BaseButton>
+      </div>
+      <nav aria-label="Outras áreas">
+        <RouterLink
+          v-for="item in moreNavigation"
+          :key="item.path"
+          :to="item.path"
+          class="nav-item"
+          :class="{ 'is-active': isSectionActive(item.path) }"
+          @click="closeMenu"
+        >
+          <component :is="item.icon" :size="20" :stroke-width="1.8" />
+          <span>{{ item.name }}</span>
+        </RouterLink>
+        <RouterLink to="/ajuda" class="nav-item" @click="closeMenu"
+          ><CircleHelp :size="20" /><span>Ajuda</span></RouterLink
+        >
+      </nav>
+    </dialog>
   </div>
 </template>

@@ -84,7 +84,22 @@ banco separado terminado em `_test`. O comando inicia API de testes na porta
 encerra os serviços que iniciou. Não use essas portas em outro processo durante
 o teste. O banco principal e as contas existentes são preservados.
 
+Para incluir o cenário de recuperação por e-mail, inicie também `npm run
+mail:start` na pasta `backend`. A execução E2E força o uso do SMTP local e
+desabilita as credenciais de WhatsApp, sem realizar envios externos.
+
 O link Esqueci minha senha solicita recuperação por e-mail. Na demonstração,
 inicie `npm run mail:start` na pasta `backend` e consulte a mensagem em
 `http://127.0.0.1:8025`. O link recebido abre a definição de nova senha e deixa
 de funcionar após seu uso ou expiração.
+
+Rotina permite configurar horários e acompanhar pendências de ciclos ativos.
+Parâmetros permite manter faixas globais, por viveiro e por fase, preservando
+versões anteriores. Relatórios reúne custos, produção e gráficos, com exportação
+da página consultada em CSV. A área do povoamento e a quantidade final são
+necessárias para alguns indicadores.
+
+WhatsApp permite configurar destinatários, horário, modelo e consultar prévias e
+resultados. O envio permanece indisponível até configurar a conta da Meta no
+backend. A aplicação distingue aceitação pelo provedor de entrega e leitura
+confirmadas pelo webhook. Os segredos ficam exclusivamente no ambiente do backend.

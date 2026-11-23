@@ -135,6 +135,8 @@ svg {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .nav-item {
   display: flex;
@@ -2059,6 +2061,15 @@ h1 {
   height: 18px;
   accent-color: var(--primary);
 }
+.summary-preview {
+  border-left: 3px solid var(--primary);
+  padding: 12px 18px;
+  background: var(--primary-soft);
+  overflow-wrap: anywhere;
+}
+.summary-preview p + p {
+  margin-top: 12px;
+}
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2120,15 +2131,30 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
-@media (max-width: 767px) {
-  .mobile-nav {
-    display: flex;
-    overflow-x: auto;
-    max-width: 100vw;
-  }
-  .mobile-nav-item {
-    flex: 0 0 76px;
-  }
+.navigation-dialog {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface);
+  overflow-y: auto;
+}
+.navigation-dialog::backdrop {
+  background: rgb(15 23 42 / 40%);
+}
+.navigation-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.navigation-dialog-heading h2 {
+  margin: 0;
+  font-size: 21px;
 }
 @media (max-width: 767px) {
   .record-panel {
@@ -2137,14 +2163,11 @@ h1 {
   .records-table {
     min-width: 600px;
   }
-  .desktop-nav {
-    overflow-y: auto;
-  }
-  .mobile-nav {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-  .mobile-nav a {
-    flex: 0 0 72px;
+  button.mobile-nav-item {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
   }
 }

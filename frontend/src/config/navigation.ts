@@ -10,6 +10,7 @@ import {
   Clock,
   SlidersHorizontal,
   ChartColumn,
+  MessageSquare,
 } from '@lucide/vue'
 
 export interface Section {
@@ -21,6 +22,11 @@ export interface Section {
 }
 
 export const sections: Section[] = [
+  { path: '/viveiros', name: 'Viveiros', title: 'Viveiros e ciclos', icon: Waves },
+  { path: '/medicoes', name: 'Medições', title: 'Medições de água', icon: Droplets },
+  { path: '/eventos', name: 'Ocorrências', title: 'Ocorrências', icon: ClipboardList },
+  { path: '/despesas', name: 'Despesas', title: 'Despesas', icon: Wallet, adminOnly: true },
+  { path: '/vendas', name: 'Vendas', title: 'Vendas', icon: ShoppingBag, adminOnly: true },
   {
     path: '/relatorios',
     name: 'Relatórios',
@@ -29,34 +35,26 @@ export const sections: Section[] = [
     adminOnly: true,
   },
   {
+    path: '/funcionarios',
+    adminOnly: true,
+    name: 'Funcionários',
+    title: 'Funcionários',
+    icon: UsersRound,
+  },
+  { path: '/rotina', name: 'Rotina', title: 'Rotina de medições', icon: Clock },
+  {
     path: '/faixas',
     name: 'Parâmetros',
     title: 'Faixas de parâmetros',
     icon: SlidersHorizontal,
     adminOnly: true,
   },
-  { path: '/rotina', name: 'Rotina', title: 'Rotina de medições', icon: Clock },
-  { path: '/eventos', name: 'Ocorrências', title: 'Ocorrências', icon: ClipboardList },
-  { path: '/despesas', name: 'Despesas', title: 'Despesas', icon: Wallet, adminOnly: true },
-  { path: '/vendas', name: 'Vendas', title: 'Vendas', icon: ShoppingBag, adminOnly: true },
   {
-    path: '/viveiros',
-    name: 'Viveiros',
-    title: 'Viveiros e ciclos',
-    icon: Waves,
-  },
-  {
-    path: '/medicoes',
-    name: 'Medições',
-    title: 'Medições de água',
-    icon: Droplets,
-  },
-  {
-    path: '/funcionarios',
+    path: '/whatsapp',
+    name: 'WhatsApp',
+    title: 'Resumo pelo WhatsApp',
+    icon: MessageSquare,
     adminOnly: true,
-    name: 'Funcionários',
-    title: 'Funcionários',
-    icon: UsersRound,
   },
 ]
 

@@ -89,6 +89,16 @@ try {
     HOST: '127.0.0.1',
     PORT: '3001',
     NODE_ENV: 'test',
+    PUBLIC_APP_URL: 'http://127.0.0.1:4173',
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: '1025',
+    SMTP_SECURE: 'false',
+    SMTP_USER: '',
+    SMTP_PASSWORD: '',
+    WHATSAPP_ACCESS_TOKEN: '',
+    WHATSAPP_PHONE_NUMBER_ID: '',
+    WHATSAPP_APP_SECRET: '',
+    WHATSAPP_VERIFY_TOKEN: '',
   })
   await waitFor('http://127.0.0.1:3001/health', api)
   site = start(
@@ -107,7 +117,7 @@ try {
   const { default: cypress } = await import('cypress')
   const result = await cypress.run({
     project: frontend,
-    spec: 'cypress/e2e/cultivo.cy.ts',
+    spec: 'cypress/e2e/*.cy.ts',
     browser: 'electron',
     config: { baseUrl: 'http://127.0.0.1:4173', video: false },
     env: { admin: adminEmail, employee: employeeEmail, password, prefix },
@@ -127,10 +137,21 @@ try {
   await db.venda.deleteMany({ where: { viveiroId: { in: ids } } })
   await db.eventoOperacional.deleteMany({ where: { viveiroId: { in: ids } } })
   await db.cicloCultivo.deleteMany({ where: { viveiroId: { in: ids } } })
+  await db.faixaParametro.deleteMany({ where: { viveiroId: { in: ids } } })
+  const users = await db.usuario.findMany({
+    where: { email: { startsWith: prefix } },
+    select: { id: true },
+  })
+  await db.envioWhatsApp.deleteMany({
+    where: { contato: { criadoPor: { in: users.map((user) => user.id) } } },
+  })
+  await db.contatoWhatsApp.deleteMany({
+    where: { criadoPor: { in: users.map((user) => user.id) } },
+  })
   await db.viveiro.deleteMany({ where: { id: { in: ids } } })
   await db.faixaParametro.deleteMany({ where: { id: { in: newRanges } } })
   await db.parametro.deleteMany({ where: { id: { in: newParams } } })
-  await db.usuario.deleteMany({ where: { email: { in: [adminEmail, employeeEmail] } } })
+  await db.usuario.deleteMany({ where: { email: { startsWith: prefix } } })
   await db.$disconnect()
 }
 process.exitCode = failed ? 1 : 0
