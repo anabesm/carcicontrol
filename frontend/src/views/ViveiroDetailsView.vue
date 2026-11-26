@@ -8,6 +8,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseLoading from '@/components/ui/BaseLoading.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import CycleProgress from '@/components/records/CycleProgress.vue'
 
 const props = defineProps<{ id: string }>()
 const auth = useAuthStore()
@@ -72,6 +73,7 @@ const { viveiro, loading, errorMessage, notFound, load } = useViveiro(() => prop
           <StatusBadge v-if="viveiro.cicloAtivo" v-bind="cycleStates[viveiro.cicloAtivo.status]" />
         </div>
         <template v-if="viveiro.cicloAtivo">
+          <CycleProgress :cycle="viveiro.cicloAtivo" />
           <dl class="record-details">
             <div>
               <dt>Início do povoamento</dt>

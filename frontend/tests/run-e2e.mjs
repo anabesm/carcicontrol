@@ -101,9 +101,16 @@ try {
     WHATSAPP_VERIFY_TOKEN: '',
   })
   await waitFor('http://127.0.0.1:3001/health', api)
+  execFileSync(process.execPath, [resolve(frontend, 'node_modules/vite/bin/vite.js'), 'build'], {
+    cwd: frontend,
+    stdio: 'pipe',
+    windowsHide: true,
+    env: { ...process.env, NODE_ENV: 'production' },
+  })
   site = start(
     [
       resolve(frontend, 'node_modules/vite/bin/vite.js'),
+      'preview',
       '--host',
       '127.0.0.1',
       '--port',
@@ -117,8 +124,8 @@ try {
   const { default: cypress } = await import('cypress')
   const result = await cypress.run({
     project: frontend,
-    spec: 'cypress/e2e/*.cy.ts',
-    browser: 'electron',
+    spec: process.env.E2E_SPEC || 'cypress/e2e/*.cy.ts',
+    browser: process.env.E2E_BROWSER || 'electron',
     config: { baseUrl: 'http://127.0.0.1:4173', video: false },
     env: { admin: adminEmail, employee: employeeEmail, password, prefix },
   })

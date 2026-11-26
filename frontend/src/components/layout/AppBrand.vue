@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import brandSymbol from '@/assets/brand-symbol.png'
+import brandSymbol from '@/assets/brand-symbol.svg'
 </script>
 
 <template>
@@ -7,7 +7,6 @@ import brandSymbol from '@/assets/brand-symbol.png'
     <img :src="brandSymbol" width="38" height="38" alt="" class="brand-symbol" />
     <span class="brand-copy">
       <span class="brand-name">CarciControl</span>
-      <span class="brand-caption">Gestão de cultivo</span>
     </span>
   </RouterLink>
 </template>

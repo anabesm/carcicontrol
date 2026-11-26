@@ -6,13 +6,14 @@ import { useAuthStore } from '@/stores/auth'
 import { viveirosApi } from '@/services/viveiros'
 import { ApiError } from '@/services/api'
 import type { Viveiro } from '@/types/viveiro'
-import { formatDate, formatMeasure, pondStates } from '@/utils/viveiros'
+import { formatMeasure, pondStates } from '@/utils/viveiros'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseField from '@/components/ui/BaseField.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 import BaseLoading from '@/components/ui/BaseLoading.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import CycleProgress from '@/components/records/CycleProgress.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -41,16 +42,6 @@ const filtered = computed(() =>
   ),
 )
 const filters = computed(() => [
-  {
-    value: 'INATIVO',
-    label: 'Inativos',
-    count: viveiros.value.filter((pond) => pond.status === 'INATIVO').length,
-  },
-  {
-    value: 'MANUTENCAO',
-    label: 'Em manutenção',
-    count: viveiros.value.filter((pond) => pond.status === 'MANUTENCAO').length,
-  },
   { value: 'TODOS', label: 'Todos', count: viveiros.value.length },
   {
     value: 'DISPONIVEL',
@@ -61,6 +52,16 @@ const filters = computed(() => [
     value: 'OCUPADO',
     label: 'Ocupados',
     count: viveiros.value.filter((pond) => pond.status === 'OCUPADO').length,
+  },
+  {
+    value: 'MANUTENCAO',
+    label: 'Em manutenção',
+    count: viveiros.value.filter((pond) => pond.status === 'MANUTENCAO').length,
+  },
+  {
+    value: 'INATIVO',
+    label: 'Inativos',
+    count: viveiros.value.filter((pond) => pond.status === 'INATIVO').length,
   },
 ])
 async function load() {
@@ -156,13 +157,8 @@ onBeforeUnmount(() => {
             <dd>{{ formatMeasure(pond.profundidadeMedia) }} <span>m</span></dd>
           </div>
         </dl>
-        <p class="pond-cycle-summary">
-          {{
-            pond.cicloAtivo
-              ? `Ciclo ativo desde ${formatDate(pond.cicloAtivo.dataInicio)}`
-              : 'Sem ciclo ativo'
-          }}
-        </p>
+        <CycleProgress v-if="pond.cicloAtivo" :cycle="pond.cicloAtivo" />
+        <p v-else class="pond-cycle-summary">Sem ciclo ativo</p>
         <RouterLink
           :to="{ name: 'detalhes-viveiro', params: { id: pond.id } }"
           class="pond-detail-link"

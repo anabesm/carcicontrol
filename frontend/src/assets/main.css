@@ -1,18 +1,20 @@
 :root {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #172e49;
-  background: #f6f8fb;
+  font-family: 'Chivo', 'Segoe UI', Arial, sans-serif;
+  color: #181c1e;
+  background: #f7fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --primary: #245cca;
-  --primary-hover: #194bab;
-  --primary-soft: #edf3ff;
-  --ink: #172e49;
-  --muted: #5d6e84;
-  --border: #e2e8f0;
+  --primary: #0a2540;
+  --primary-hover: #153d61;
+  --primary-soft: #eaf1f6;
+  --secondary: #00696d;
+  --heading: #0a2540;
+  --ink: #181c1e;
+  --muted: #43474d;
+  --border: #cbd5df;
   --surface: #fff;
-  --radius: 12px;
+  --radius: 8px;
 }
 * {
   box-sizing: border-box;

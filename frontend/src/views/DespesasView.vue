@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useResource } from '@/composables/useResource'
 import { despesasApi, categories, type Despesa } from '@/services/despesas'
 import { currency, dateTime, queryString } from '@/utils/records'
@@ -12,7 +13,7 @@ import BaseLoading from '@/components/ui/BaseLoading.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
 const filter = reactive({ viveiroId: '', cicloId: '', inicio: '', fim: '' })
 const offset = ref(0)
-const showingForm = ref(false)
+const showingForm = ref(useRoute().query.novo === '1')
 const success = ref('')
 const editing = ref<Despesa | null>(null),
   audit = ref<Despesa | null>(null)

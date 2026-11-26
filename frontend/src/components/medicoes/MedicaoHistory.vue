@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { medicoesApi } from '@/services/medicoes'
 import { ApiError } from '@/services/api'
 import type { AlertaComMedicao, PaginaAlertas, PaginaMedicoes } from '@/types/medicao'
@@ -105,6 +105,12 @@ watch(
 )
 watch(alertStatus, () => {
   void loadAlerts(0)
+})
+watch([loadingHistory, loadingAlerts], async ([historyLoading, alertsLoading]) => {
+  if (!historyLoading && !alertsLoading && window.location.hash === '#alertas') {
+    await nextTick()
+    document.getElementById('alertas')?.scrollIntoView({ block: 'start' })
+  }
 })
 onBeforeUnmount(() => {
   historyVersion++
@@ -215,6 +221,7 @@ onBeforeUnmount(() => {
   </section>
   <section
     class="data-panel measurement-history-panel"
+    id="alertas"
     aria-labelledby="measurement-alerts-heading"
   >
     <div class="list-toolbar">

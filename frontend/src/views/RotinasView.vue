@@ -12,6 +12,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseLoading from '@/components/ui/BaseLoading.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
+import ProgressBar from '@/components/ui/ProgressBar.vue'
 const auth = useAuthStore()
 const filter = reactive({ viveiroId: '', cicloId: '', data: today() })
 const form = reactive({
@@ -180,6 +181,20 @@ onMounted(async () => {
       ><p>
         <strong>{{ data.total }}</strong> medições pendentes
       </p>
+      <div v-if="data.pendencias.length" class="routine-inline-progress">
+        <div class="progress-heading">
+          <span>Medições realizadas</span
+          ><strong
+            >{{ data.pendencias.filter((row) => row.situacao === 'CONCLUIDA').length }} de
+            {{ data.pendencias.length }}</strong
+          >
+        </div>
+        <ProgressBar
+          :value="data.pendencias.filter((row) => row.situacao === 'CONCLUIDA').length"
+          :max="data.pendencias.length"
+          label="Medições realizadas na rotina consultada"
+        />
+      </div>
       <p v-if="!data.pendencias.length" class="empty-message">
         Nenhum horário aplicável aos ciclos ativos.
       </p>

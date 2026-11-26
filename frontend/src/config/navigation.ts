@@ -10,6 +10,7 @@ import {
   Clock,
   SlidersHorizontal,
   ChartColumn,
+  ChartNoAxesCombined,
   MessageSquare,
 } from '@lucide/vue'
 
@@ -27,6 +28,12 @@ export const sections: Section[] = [
   { path: '/eventos', name: 'Ocorrências', title: 'Ocorrências', icon: ClipboardList },
   { path: '/despesas', name: 'Despesas', title: 'Despesas', icon: Wallet, adminOnly: true },
   { path: '/vendas', name: 'Vendas', title: 'Vendas', icon: ShoppingBag, adminOnly: true },
+  {
+    path: '/indicadores',
+    name: 'Indicadores',
+    title: 'Indicadores do cultivo',
+    icon: ChartNoAxesCombined,
+  },
   {
     path: '/relatorios',
     name: 'Relatórios',

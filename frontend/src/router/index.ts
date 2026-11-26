@@ -45,7 +45,13 @@ export function createAppRouter(
         path: '/',
         component: AppShell,
         children: [
-          { path: '/', name: 'inicio', component: HomeView, meta: { title: 'Visão geral' } },
+          { path: '/', name: 'inicio', component: HomeView, meta: { title: 'Início' } },
+          {
+            path: '/indicadores',
+            name: 'indicadores',
+            component: () => import('@/views/IndicadoresView.vue'),
+            meta: { title: 'Indicadores do cultivo' },
+          },
           {
             path: '/viveiros',
             name: 'viveiros',

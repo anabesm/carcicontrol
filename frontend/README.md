@@ -69,8 +69,10 @@ conflitos na abertura de ciclos.
 
 Ocorrências permite consultar o histórico e, para administradores, registrar
 eventos. Despesas e Vendas são restritas ao administrador. O encerramento por
-venda ou perda fica nos detalhes do viveiro. A página inicial apresenta totais
-reais e a evolução de medições de um ciclo selecionado.
+venda ou perda fica nos detalhes do viveiro. A página inicial reúne acessos
+rápidos, rotina do dia e alertas. Indicadores reúne os totais e a evolução
+das medições. As barras dos ciclos usam a previsão de despesca cadastrada;
+não representam crescimento biológico nem encerramento automático.
 
 Para executar a jornada completa no navegador:
 
@@ -103,3 +105,20 @@ WhatsApp permite configurar destinatários, horário, modelo e consultar prévia
 resultados. O envio permanece indisponível até configurar a conta da Meta no
 backend. A aplicação distingue aceitação pelo provedor de entrega e leitura
 confirmadas pelo webhook. Os segredos ficam exclusivamente no ambiente do backend.
+
+## Aplicativo instalável
+
+O frontend inclui manifesto, ícones e service worker na compilação de produção.
+O manifesto e os ícones publicados recebem nomes baseados no conteúdo para
+evitar que o instalador reutilize uma logo antiga do cache.
+Para testar a instalação localmente, execute `npm run build` e `npm run preview`.
+Abra `http://127.0.0.1:4173` e use a opção de instalação do navegador. O modo
+de desenvolvimento não registra o service worker. Os testes E2E usam a
+compilação de produção para validar também o manifesto e o cache.
+
+Para instalar em um celular, publique a interface e a API no mesmo domínio
+com HTTPS. No Android, use Instalar aplicativo; no iPhone, use Compartilhar
+e Adicionar à Tela de Início. A instalação não elimina a necessidade do servidor.
+O cache contém somente arquivos públicos da interface. A API, os dados dos
+usuários e as sessões não são armazenados nele. Sem conexão, é exibida uma
+página para tentar novamente; registros de cultivo exigem conexão.

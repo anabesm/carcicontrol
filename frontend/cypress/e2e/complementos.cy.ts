@@ -203,6 +203,7 @@ describe('Configurações e complementos do cultivo', () => {
     createCycle().then(({ pond, cycle }) => {
       const pages = [
         ['inicio', '/', '/api/indicadores/resumo*'],
+        ['indicadores', '/indicadores', '/api/indicadores/resumo*'],
         ['viveiros', '/viveiros', '/api/viveiros'],
         ['medicoes', `/medicoes?viveiroId=${pond.id}&cicloId=${cycle.id}`, '/api/medicoes*'],
         ['ocorrencias', '/eventos', '/api/eventos*'],

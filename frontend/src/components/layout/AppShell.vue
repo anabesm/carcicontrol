@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import AppBrand from './AppBrand.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
+import PwaActions from './PwaActions.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -79,6 +80,7 @@ async function logout() {
         </RouterLink>
       </nav>
       <div class="sidebar-bottom">
+        <PwaActions />
         <RouterLink to="/ajuda" class="nav-item" exact-active-class="is-active">
           <CircleHelp :size="20" :stroke-width="1.8" />
           <span>Ajuda e navegação</span>
@@ -124,9 +126,6 @@ async function logout() {
         >
         <RouterView />
       </main>
-      <footer class="workspace-footer">
-        <span>CarciControl</span><span>Gestão de carcinicultura</span>
-      </footer>
     </div>
 
     <nav class="mobile-nav" aria-label="Navegação principal no celular">
@@ -186,6 +185,7 @@ async function logout() {
           ><CircleHelp :size="20" /><span>Ajuda</span></RouterLink
         >
       </nav>
+      <PwaActions />
     </dialog>
   </div>
 </template>

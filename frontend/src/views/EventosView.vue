@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useResource } from '@/composables/useResource'
 import { eventosApi } from '@/services/eventos'
@@ -12,7 +13,7 @@ import BaseAlert from '@/components/ui/BaseAlert.vue'
 const auth = useAuthStore()
 const filter = reactive({ viveiroId: '', cicloId: '' })
 const form = reactive({ viveiroId: '', cicloId: '', tipo: '', descricao: '', dataHora: localNow() })
-const showingForm = ref(false)
+const showingForm = ref(auth.isAdmin && useRoute().query.novo === '1')
 const saving = ref(false)
 const message = ref('')
 const success = ref('')

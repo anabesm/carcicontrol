@@ -1,151 +1,245 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
-import { indicadoresApi, type Resumo, type Evolucao } from '@/services/indicadores'
-import { apiRequest } from '@/services/api'
-import { useResource } from '@/composables/useResource'
+import { computed, onMounted } from 'vue'
+import {
+  ArrowRight,
+  Waves,
+  Droplets,
+  ClipboardList,
+  Wallet,
+  Clock,
+  ChartColumn,
+  CircleAlert,
+  CheckCheck,
+  RefreshCw,
+  Plus,
+} from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { currency, queryString } from '@/utils/records'
-import type { ParametroConfiguravel } from '@/services/faixas'
-import CultivoFilter from '@/components/records/CultivoFilter.vue'
-import MeasurementChart from '@/components/medicoes/MeasurementChart.vue'
-import BaseField from '@/components/ui/BaseField.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useResource } from '@/composables/useResource'
+import { indicadoresApi, type Resumo } from '@/services/indicadores'
+import { rotinasApi, type Pendencia } from '@/services/rotinas'
+import { viveirosApi } from '@/services/viveiros'
+import { apiRequest } from '@/services/api'
+import type { Viveiro } from '@/types/viveiro'
+import type { PaginaAlertas } from '@/types/medicao'
+import { cultivationDay } from '@/utils/cultivo'
+import { pondStates } from '@/utils/viveiros'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseLoading from '@/components/ui/BaseLoading.vue'
 import BaseAlert from '@/components/ui/BaseAlert.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import ProgressBar from '@/components/ui/ProgressBar.vue'
+import CycleProgress from '@/components/records/CycleProgress.vue'
+
 const auth = useAuthStore()
-const filter = reactive({ viveiroId: '', cicloId: '', inicio: '', fim: '' })
-const parameters = ref<ParametroConfiguravel[]>([])
-const parametroId = ref('')
-const catalogError = ref('')
-const summary = useResource(
-  () => indicadoresApi.summary(queryString(filter)),
-  null as Resumo | null,
+const firstName = computed(() => auth.usuario?.nome.trim().split(/\s+/)[0] || '')
+const date = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+}).format(new Date())
+const summary = useResource(() => indicadoresApi.summary(''), null as Resumo | null)
+const ponds = useResource(() => viveirosApi.list(), { viveiros: [] as Viveiro[] })
+const routine = useResource(() => rotinasApi.pending(`data=${cultivationDay()}`), {
+  pendencias: [] as Pendencia[],
+  total: 0,
+})
+const alerts = useResource(
+  () => apiRequest<PaginaAlertas>('/alertas?status=PENDENTE&limite=2'),
+  null as PaginaAlertas | null,
 )
-const evolution = useResource(
-  () => indicadoresApi.evolution(queryString({ ...filter, parametroId: parametroId.value })),
-  null as Evolucao | null,
+const completed = computed(
+  () => routine.data.value.pendencias.filter((row) => row.situacao === 'CONCLUIDA').length,
 )
+const dueSoon = computed(() =>
+  routine.data.value.pendencias.filter((row) => row.situacao !== 'CONCLUIDA').slice(0, 2),
+)
+const activePonds = computed(() =>
+  ponds.data.value.viveiros.filter((pond) => pond.cicloAtivo).slice(0, 3),
+)
+const shortcuts = computed(() => [
+  { to: '/medicoes', title: 'Registrar medição', icon: Droplets, primary: true },
+  { to: '/viveiros', title: 'Consultar viveiros', icon: Waves },
+  ...(auth.isAdmin
+    ? [
+        { to: '/eventos?novo=1', title: 'Registrar ocorrência', icon: ClipboardList },
+        { to: '/despesas?novo=1', title: 'Registrar despesa', icon: Wallet },
+      ]
+    : [{ to: '/eventos', title: 'Consultar ocorrências', icon: ClipboardList }]),
+])
 async function refresh() {
-  await summary.load()
-  if (filter.cicloId && parametroId.value) await evolution.load()
+  await Promise.all([summary.load(), ponds.load(), routine.load(), alerts.load()])
 }
-watch([() => filter.cicloId, parametroId], () => {
-  evolution.data.value = null
-  if (filter.cicloId && parametroId.value) void evolution.load()
-})
-onMounted(async () => {
-  void summary.load()
-  try {
-    parameters.value = (
-      await apiRequest<{ parametros: ParametroConfiguravel[] }>('/parametros/catalogo')
-    ).parametros
-    parametroId.value = String(parameters.value[0]?.id ?? '')
-  } catch (cause) {
-    catalogError.value =
-      cause instanceof Error ? cause.message : 'Não foi possível carregar os parâmetros.'
-  }
-})
+onMounted(refresh)
 </script>
 <template>
-  <div class="page-intro">
-    <h1>Visão geral</h1>
-    <BaseButton variant="secondary" :disabled="summary.loading.value" @click="refresh"
-      >Atualizar</BaseButton
+  <header class="home-welcome">
+    <div>
+      <p class="home-date">{{ date }}</p>
+      <h1>Olá, {{ firstName }}.</h1>
+    </div>
+    <BaseButton variant="secondary" :loading="summary.loading.value" @click="refresh"
+      ><RefreshCw :size="18" />Atualizar</BaseButton
     >
+  </header>
+  <section aria-labelledby="quick-actions-heading" class="home-shortcuts-section">
+    <h2 id="quick-actions-heading">Acessos rápidos</h2>
+    <nav class="home-shortcuts" aria-label="Ações rápidas">
+      <RouterLink
+        v-for="action in shortcuts"
+        :key="action.to"
+        :to="action.to"
+        class="home-shortcut"
+        :class="{ 'home-shortcut--primary': action.primary }"
+        ><span class="shortcut-icon"
+          ><component :is="action.icon" :size="25" :stroke-width="1.8" /></span
+        ><strong>{{ action.title }}</strong
+        ><ArrowRight :size="19"
+      /></RouterLink>
+    </nav>
+  </section>
+  <div class="home-today-grid">
+    <section class="data-panel home-panel" aria-labelledby="today-heading">
+      <div class="home-section-heading">
+        <h2 id="today-heading"><Clock :size="22" />Rotina de hoje</h2>
+        <RouterLink to="/rotina" class="text-link">Ver rotina<ArrowRight :size="17" /></RouterLink>
+      </div>
+      <BaseLoading v-if="routine.loading.value" label="Carregando rotina…" /><BaseAlert
+        v-else-if="routine.error.value"
+        tone="error"
+        title="Rotina indisponível"
+        >{{ routine.error.value }}</BaseAlert
+      >
+      <template v-else-if="routine.data.value.pendencias.length"
+        ><div class="routine-progress-count">
+          <strong
+            >{{ completed }}<span> / {{ routine.data.value.pendencias.length }}</span></strong
+          ><span>medições realizadas</span>
+        </div>
+        <ProgressBar
+          :value="completed"
+          :max="routine.data.value.pendencias.length"
+          label="Medições realizadas hoje"
+          :value-text="`${completed} de ${routine.data.value.pendencias.length} medições realizadas`"
+        />
+        <div class="home-task-list">
+          <RouterLink
+            v-for="item in dueSoon"
+            :key="`${item.cicloId}-${item.rotinaId}`"
+            :to="`/medicoes?viveiroId=${item.viveiroId}&cicloId=${item.cicloId}`"
+            class="home-task"
+            ><span class="task-time">{{ item.horario }}</span
+            ><span
+              ><strong>{{ item.parametro.nome }}</strong
+              ><span>{{ item.viveiro }}</span></span
+            ><span
+              class="task-state"
+              :class="{ 'task-state--late': item.situacao === 'PENDENTE' }"
+              >{{ item.situacao === 'PENDENTE' ? 'Pendente' : 'Aguardando' }}</span
+            ><ArrowRight :size="17"
+          /></RouterLink>
+        </div>
+        <p v-if="!dueSoon.length" class="home-empty">
+          <CheckCheck :size="22" />Medições do dia concluídas.
+        </p></template
+      >
+      <div v-else class="home-empty">
+        <Clock :size="28" />
+        <p>Nenhuma medição programada para hoje.</p>
+        <RouterLink v-if="auth.isAdmin" to="/rotina" class="text-link"
+          >Configurar horários<ArrowRight :size="17"
+        /></RouterLink>
+      </div>
+    </section>
+    <section class="data-panel home-panel home-alerts" aria-labelledby="home-alerts-heading">
+      <div class="home-section-heading">
+        <h2 id="home-alerts-heading"><CircleAlert :size="22" />Atenção ao cultivo</h2>
+        <span v-if="alerts.data.value?.total" class="home-count">{{
+          alerts.data.value.total
+        }}</span>
+      </div>
+      <BaseLoading v-if="alerts.loading.value" label="Carregando alertas…" /><BaseAlert
+        v-else-if="alerts.error.value"
+        tone="error"
+        title="Alertas indisponíveis"
+        >{{ alerts.error.value }}</BaseAlert
+      >
+      <div v-else-if="!alerts.data.value?.alertas.length" class="home-empty">
+        <CheckCheck :size="28" />
+        <p>Nenhum alerta pendente.</p>
+      </div>
+      <div v-else class="home-alert-list">
+        <RouterLink
+          v-for="alert in alerts.data.value.alertas"
+          :key="alert.id"
+          :to="`/medicoes?viveiroId=${alert.medicao.ciclo.viveiro.id}&cicloId=${alert.medicao.ciclo.id}#alertas`"
+          class="home-alert-row"
+          ><span
+            ><strong>{{ alert.medicao.ciclo.viveiro.identificador }}</strong
+            ><span
+              >{{ alert.medicao.parametro.nome }} ·
+              <b>{{ alert.valorMedido }} {{ alert.medicao.unidade }}</b></span
+            ><small>{{ alert.limiteViolado }}</small></span
+          ><ArrowRight :size="18"
+        /></RouterLink>
+      </div>
+    </section>
   </div>
-  <section class="data-panel record-panel">
-    <form class="form-stack" @submit.prevent="refresh">
-      <CultivoFilter v-model:viveiro-id="filter.viveiroId" v-model:ciclo-id="filter.cicloId" />
-      <div class="form-columns">
-        <BaseField v-model="filter.inicio" label="De" type="date" /><BaseField
-          v-model="filter.fim"
-          label="Até"
-          type="date"
+  <section class="home-ponds" aria-labelledby="home-ponds-heading">
+    <div class="home-section-heading">
+      <h2 id="home-ponds-heading">Seus viveiros</h2>
+      <RouterLink to="/viveiros" class="text-link">Ver todos<ArrowRight :size="17" /></RouterLink>
+    </div>
+    <BaseAlert
+      v-if="summary.error.value || ponds.error.value"
+      tone="error"
+      title="Viveiros indisponíveis"
+      >{{ summary.error.value || ponds.error.value }}</BaseAlert
+    ><BaseLoading v-else-if="ponds.loading.value" label="Carregando viveiros…" /><template v-else
+      ><div v-if="summary.data.value && ponds.data.value.viveiros.length" class="pond-occupancy">
+        <span
+          ><strong>{{ summary.data.value.ciclosAtivos }}</strong> em cultivo</span
+        ><span>{{ summary.data.value.viveiros.DISPONIVEL || 0 }} disponíveis</span
+        ><ProgressBar
+          :value="summary.data.value.ciclosAtivos"
+          :max="ponds.data.value.viveiros.filter((p) => p.status !== 'INATIVO').length"
+          label="Ocupação dos viveiros ativos"
         />
       </div>
-      <div>
-        <BaseButton variant="secondary" type="submit" :disabled="summary.loading.value"
-          >Aplicar filtros</BaseButton
-        >
+      <div v-if="activePonds.length" class="home-pond-grid">
+        <article v-for="pond in activePonds" :key="pond.id" class="data-panel home-pond-card">
+          <div class="home-section-heading">
+            <span class="section-icon"><Waves :size="22" /></span
+            ><StatusBadge v-bind="pondStates[pond.status]" />
+          </div>
+          <h3>{{ pond.identificador }}</h3>
+          <CycleProgress v-if="pond.cicloAtivo" :cycle="pond.cicloAtivo" /><RouterLink
+            :to="`/viveiros/${pond.id}`"
+            class="pond-detail-link"
+            >Abrir viveiro<ArrowRight :size="18"
+          /></RouterLink>
+        </article>
       </div>
-    </form>
-    <BaseLoading v-if="summary.loading.value" /><BaseAlert
-      v-else-if="summary.error.value"
-      tone="error"
-      title="Não foi possível carregar os indicadores"
-      >{{ summary.error.value }}</BaseAlert
+      <div v-else class="data-panel home-empty">
+        <Waves :size="30" />
+        <p>
+          {{
+            ponds.data.value.viveiros.length
+              ? 'Nenhum ciclo em andamento.'
+              : 'Nenhum viveiro cadastrado.'
+          }}
+        </p>
+        <BaseButton
+          v-if="auth.isAdmin"
+          :to="ponds.data.value.viveiros.length ? '/viveiros' : '/viveiros/novo'"
+          ><Plus :size="18" />{{
+            ponds.data.value.viveiros.length ? 'Abrir um ciclo' : 'Novo viveiro'
+          }}</BaseButton
+        >
+      </div></template
     >
-    <template v-else-if="summary.data.value"
-      ><h2>Situação atual</h2>
-      <dl class="metrics-grid">
-        <div>
-          <dt>Viveiros disponíveis</dt>
-          <dd>{{ summary.data.value.viveiros.DISPONIVEL }}</dd>
-        </div>
-        <div>
-          <dt>Viveiros ocupados</dt>
-          <dd>{{ summary.data.value.viveiros.OCUPADO }}</dd>
-        </div>
-        <div>
-          <dt>Ciclos ativos</dt>
-          <dd>{{ summary.data.value.ciclosAtivos }}</dd>
-        </div>
-        <div>
-          <dt>Alertas pendentes</dt>
-          <dd>{{ summary.data.value.alertasPendentes }}</dd>
-        </div>
-      </dl>
-      <template v-if="auth.isAdmin && summary.data.value.financeiro"
-        ><h2>Financeiro do período</h2>
-        <dl class="metrics-grid">
-          <div>
-            <dt>Despesas registradas</dt>
-            <dd>{{ currency(summary.data.value.financeiro.despesas) }}</dd>
-          </div>
-          <div>
-            <dt>Receitas de vendas</dt>
-            <dd>{{ currency(summary.data.value.financeiro.receitas) }}</dd>
-          </div>
-          <div>
-            <dt>Saldo registrado</dt>
-            <dd>{{ currency(summary.data.value.financeiro.saldoRegistrado) }}</dd>
-          </div>
-          <div>
-            <dt>Peso vendido</dt>
-            <dd>{{ summary.data.value.financeiro.pesoVendidoKg.toLocaleString('pt-BR') }} kg</dd>
-          </div>
-        </dl></template
-      >
-    </template>
   </section>
-  <section class="data-panel record-panel">
-    <h2>Evolução das medições</h2>
-    <BaseAlert v-if="catalogError" tone="error" title="Parâmetros indisponíveis">{{
-      catalogError
-    }}</BaseAlert>
-    <BaseSelect v-model="parametroId" label="Parâmetro" name="parametroId"
-      ><option v-for="parameter in parameters" :key="parameter.id" :value="String(parameter.id)">
-        {{ parameter.nome }} ({{ parameter.unidadePadrao }})
-      </option></BaseSelect
-    >
-    <p v-if="!filter.cicloId" class="empty-message">
-      Selecione um viveiro e um ciclo para consultar a evolução.
-    </p>
-    <BaseLoading v-else-if="evolution.loading.value" /><BaseAlert
-      v-else-if="evolution.error.value"
-      title="Não foi possível carregar o gráfico"
-      tone="error"
-      >{{ evolution.error.value }}</BaseAlert
-    >
-    <template v-else-if="evolution.data.value"
-      ><p v-if="evolution.data.value.truncado">
-        Exibindo as primeiras 500 medições. Reduza o período para consultar os demais registros.
-      </p>
-      <MeasurementChart
-        :points="evolution.data.value.medicoes"
-        :name="evolution.data.value.parametro.nome"
-        :unit="evolution.data.value.parametro.unidadePadrao"
-    /></template>
-  </section>
+  <RouterLink to="/indicadores" class="home-indicators-link"
+    ><ChartColumn :size="23" /><strong>Indicadores do cultivo</strong><ArrowRight :size="19"
+  /></RouterLink>
 </template>
